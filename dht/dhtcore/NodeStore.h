@@ -10,10 +10,14 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #ifndef NodeStore_H
 #define NodeStore_H
+
+#ifdef SUBNODE
+    #error "this file should not be included in subnode"
+#endif
 
 #include "dht/Address.h"
 #include "dht/dhtcore/Node.h"
@@ -23,7 +27,7 @@
 #include "switch/EncodingScheme.h"
 #include "util/Linker.h"
 #include "util/events/EventBase.h"
-Linker_require("dht/dhtcore/NodeStore.c")
+Linker_require("dht/dhtcore/NodeStore.c");
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -72,11 +76,10 @@ struct NodeStore* NodeStore_new(struct Address* myAddress,
  *
  * @param nodeStore the store
  * @param addr the address of the new node
- * @param reachDiff the amount to credit this node
  * @param scheme the encoding scheme used by this node.
  * @param encodingFormNumber the number of the smallest possible encoding form for to encoding
  *                           the interface number through which this message came.
- * @param reach the quality of the path to the new node
+ * @param milliseconds round-trip-time of the ping/getPeers/search that discovered this node.
  */
 struct Node_Link* NodeStore_discoverNode(struct NodeStore* nodeStore,
                                          struct Address* addr,
@@ -87,6 +90,8 @@ struct Node_Link* NodeStore_discoverNode(struct NodeStore* nodeStore,
 struct Node_Two* NodeStore_nodeForAddr(struct NodeStore* nodeStore, uint8_t addr[16]);
 
 struct Node_Two* NodeStore_closestNode(struct NodeStore* nodeStore, uint64_t path);
+
+struct Node_Two* NodeStore_dumpTable(struct NodeStore* nodeStore, uint32_t index);
 
 struct Node_Link* NodeStore_linkForPath(struct NodeStore* nodeStore, uint64_t path);
 
@@ -154,6 +159,7 @@ char* NodeStore_getRouteLabel_strerror(uint64_t returnVal);
 
 
 /**
+ * FIXME(arceliar): Documentation is out of date
  * Find the one best node using LinkStateNodeCollector. LinkStateNodeCollector prefers a
  * keyspace match (same address). It breaks ties by choosing the highest version node
  * (versions above it's own are considered the same as it's version). It breaks ties of the
@@ -196,7 +202,7 @@ struct NodeList* NodeStore_getClosestNodes(struct NodeStore* store,
                                            uint32_t versionOfRequestingNode,
                                            struct Allocator* allocator);
 
-// Used to update reach when a ping/search response comes in
+// Used to update cost when a ping/search response comes in
 void NodeStore_pathResponse(struct NodeStore* nodeStore, uint64_t path, uint64_t milliseconds);
 void NodeStore_pathTimeout(struct NodeStore* nodeStore, uint64_t path);
 
@@ -226,5 +232,9 @@ struct NodeList* NodeStore_getNodesForBucket(struct NodeStore* nodeStore,
                                              struct Allocator* allocator,
                                              uint16_t bucket,
                                              const uint32_t count);
+
+
+bool NodeStore_getFullVerify(struct NodeStore* nodeStore);
+void NodeStore_setFullVerify(struct NodeStore* nodeStore, bool fullVerify);
 
 #endif

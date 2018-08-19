@@ -10,7 +10,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #define _WIN32_WINNT 0x0600
 #include "exception/WinFail.h"
@@ -130,23 +130,23 @@ static void setupRoute(const char* deviceName,
     };
 
     if (addrFam == AF_INET6) {
-        Bits_memcpyConst(&row.DestinationPrefix.Prefix.Ipv6.sin6_addr, addrBytes, 15);
+        Bits_memcpy(&row.DestinationPrefix.Prefix.Ipv6.sin6_addr, addrBytes, 15);
         row.DestinationPrefix.Prefix.Ipv6.sin6_family = AF_INET6;
         // set the gateway addr to the client's addr +1
         uint64_t addr[2];
-        Bits_memcpyConst(addr, addrBytes, 16);
+        Bits_memcpy(addr, addrBytes, 16);
         addr[1] = Endian_hostToBigEndian64(Endian_bigEndianToHost64(addr[1]) + 1);
         if (!addr[1]) {
             addr[0] = Endian_hostToBigEndian64(Endian_bigEndianToHost64(addr[0]) + 1);
         }
-//        Bits_memcpyConst(&row.NextHop.Ipv6.sin6_addr, addr, 16);
+//        Bits_memcpy(&row.NextHop.Ipv6.sin6_addr, addr, 16);
     } else {
-        Bits_memcpyConst(&row.DestinationPrefix.Prefix.Ipv4.sin_addr, addrBytes, 4);
+        Bits_memcpy(&row.DestinationPrefix.Prefix.Ipv4.sin_addr, addrBytes, 4);
         row.DestinationPrefix.Prefix.Ipv4.sin_family = AF_INET;
         uint32_t addr;
-        Bits_memcpyConst(&addr, addrBytes, 4);
+        Bits_memcpy(&addr, addrBytes, 4);
         addr = Endian_hostToBigEndian32(Endian_bigEndianToHost32(addr) + 1);
-        Bits_memcpyConst(&row.NextHop.Ipv4.sin_addr, &addr, 4);
+        Bits_memcpy(&row.NextHop.Ipv4.sin_addr, &addr, 4);
     }
 
     //InitializeIpForwardEntry(&row);
@@ -159,11 +159,12 @@ static void setupRoute(const char* deviceName,
     WinFail_check(eh, CreateIpForwardEntry2(&row));
 }
 
-void NetPlatform_addAddress(const char* name,
-                            const uint8_t* addrBytes,
+void NetPlatform_addAddress(const char* interfaceName,
+                            const uint8_t* address,
                             int prefixLen,
                             int addrFam,
                             struct Log* logger,
+                            struct Allocator* tempAlloc,
                             struct Except* eh)
 {
     MIB_UNICASTIPADDRESS_ROW ipRow = {
@@ -174,13 +175,13 @@ void NetPlatform_addAddress(const char* name,
         .OnLinkPrefixLength = 0xFF
     };
 
-    ipRow.InterfaceLuid = getLuid(name, eh);
+    ipRow.InterfaceLuid = getLuid(interfaceName, eh);
 
     ipRow.Address.si_family = addrFam;
     if (addrFam == Sockaddr_AF_INET6) {
-        Bits_memcpyConst(&ipRow.Address.Ipv6.sin6_addr, addrBytes, 16);
+        Bits_memcpy(&ipRow.Address.Ipv6.sin6_addr, address, 16);
     } else if (addrFam == Sockaddr_AF_INET) {
-        Bits_memcpyConst(&ipRow.Address.Ipv4.sin_addr, addrBytes, 4);
+        Bits_memcpy(&ipRow.Address.Ipv4.sin_addr, address, 4);
     } else {
         Assert_true(0);
     }
@@ -189,7 +190,7 @@ void NetPlatform_addAddress(const char* name,
 
     WinFail_check(eh, CreateUnicastIpAddressEntry(&ipRow));
 return;
-    setupRoute(name, addrBytes, prefixLen, addrFam, eh);
+    setupRoute(interfaceName, address, prefixLen, addrFam, eh);
 }
 
 void NetPlatform_setMTU(const char* interfaceName,
@@ -225,4 +226,21 @@ void NetPlatform_setMTU(const char* interfaceName,
 
     // Make the netsh call, and die if it returns the wrong thing.
     WinFail_check(eh, system(buffer));
+
+    // We should also configure the MTU for ipv4 (IpTunnel) case
+    const char* format1 = ("netsh interface ipv4 set subinterface "
+        "\"%s\" mtu=%d");
+    snprintf(buffer, totalSize, format1, interfaceName, mtu);
+    Log_debug(logger, "Going to run command: %s", buffer);
+    WinFail_check(eh, system(buffer));
+}
+
+void NetPlatform_setRoutes(const char* ifName,
+                           struct Sockaddr** prefixSet,
+                           int prefixCount,
+                           struct Log* logger,
+                           struct Allocator* tempAlloc,
+                           struct Except* eh)
+{
+    Except_throw(eh, "NetPlatform_setRoutes is not implemented in this platform.");
 }

@@ -10,7 +10,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include "util/log/FileWriterLog.h"
 #include "memory/Allocator.h"
@@ -65,7 +65,7 @@ static void timeout(void* vNULL)
 static int child(char* pipeName, struct Allocator* alloc, struct Log* logger)
 {
     struct EventBase* eb = EventBase_new(alloc);
-    struct Pipe* pipe = Pipe_named(pipeName, eb, NULL, alloc);
+    struct Pipe* pipe = Pipe_named(Pipe_PATH, pipeName, eb, NULL, alloc);
     pipe->onConnection = onConnectionChild;
     pipe->logger = logger;
     pipe->userData = alloc;
@@ -111,7 +111,7 @@ int main(int argc, char** argv)
     ctx->iface.send = receiveMessageParent;
     ctx->eventBase = eb;
 
-    struct Pipe* pipe = Pipe_named(name, eb, NULL, alloc);
+    struct Pipe* pipe = Pipe_named(Pipe_PATH, name, eb, NULL, alloc);
     pipe->logger = logger;
     Iface_plumb(&ctx->iface, &pipe->iface);
 

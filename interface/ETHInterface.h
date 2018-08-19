@@ -10,7 +10,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #ifndef ETHInterface_H
 #define ETHInterface_H
@@ -24,7 +24,7 @@
 #include "util/log/Log.h"
 #include "memory/Allocator.h"
 #include "util/Linker.h"
-Linker_require("interface/ETHInterface_" + builder.config.systemName + ".c")
+Linker_require("interface/ETHInterface_" + builder.config.systemName + ".c");
 
 Gcc_PACKED
 struct ETHInterface_Header

@@ -10,7 +10,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #ifndef ControlHandler_H
 #define ControlHandler_H
@@ -19,7 +19,7 @@
 #include "util/log/Log.h"
 #include "net/EventEmitter.h"
 #include "util/Linker.h"
-Linker_require("net/ControlHandler.c")
+Linker_require("net/ControlHandler.c");
 
 struct ControlHandler
 {

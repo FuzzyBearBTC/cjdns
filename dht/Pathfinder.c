@@ -10,8 +10,9 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+#include "crypto/AddressCalc.h"
 #include "dht/Pathfinder.h"
 #include "dht/DHTModule.h"
 #include "dht/Address.h"
@@ -19,6 +20,7 @@
 #include "wire/RouteHeader.h"
 #include "dht/ReplyModule.h"
 #include "dht/EncodingSchemeModule.h"
+#include "dht/Pathfinder_pvt.h"
 #include "dht/SerializationModule.h"
 #include "dht/dhtcore/RouterModule.h"
 #include "dht/dhtcore/RouterModule_admin.h"
@@ -53,6 +55,8 @@ struct Pathfinder_pvt
     #define Pathfinder_pvt_state_RUNNING 1
     int state;
 
+    int bestPathChanges;
+
     // After begin connected, these fields will be filled.
     struct Address myAddr;
     struct DHTModuleRegistry* registry;
@@ -85,7 +89,7 @@ static int incomingFromDHT(struct DHTMessage* dmessage, void* vpf)
     }
 
     // Sanity check (make sure the addr was actually calculated)
-    Assert_true(addr->ip6.bytes[0] == 0xfc);
+    Assert_true(AddressCalc_validAddress(addr->ip6.bytes));
 
     Message_shift(msg, PFChan_Msg_MIN_SIZE, NULL);
     struct PFChan_Msg* emsg = (struct PFChan_Msg*) msg->bytes;
@@ -94,10 +98,15 @@ static int incomingFromDHT(struct DHTMessage* dmessage, void* vpf)
     DataHeader_setVersion(&emsg->data, DataHeader_CURRENT_VERSION);
     DataHeader_setContentType(&emsg->data, ContentType_CJDHT);
 
-    Bits_memcpyConst(emsg->route.ip6, addr->ip6.bytes, 16);
+    Bits_memcpy(emsg->route.ip6, addr->ip6.bytes, 16);
     emsg->route.version_be = Endian_hostToBigEndian32(addr->protocolVersion);
     emsg->route.sh.label_be = Endian_hostToBigEndian64(addr->path);
-    Bits_memcpyConst(emsg->route.publicKey, addr->key, 32);
+    SwitchHeader_setVersion(&emsg->route.sh, SwitchHeader_CURRENT_VERSION);
+    Bits_memcpy(emsg->route.publicKey, addr->key, 32);
+
+    Assert_true(!Bits_isZero(emsg->route.publicKey, 32));
+    Assert_true(emsg->route.sh.label_be);
+    Assert_true(emsg->route.version_be);
 
     Message_push32(msg, PFChan_Pathfinder_SENDMSG, NULL);
 
@@ -117,10 +126,10 @@ static void nodeForAddress(struct PFChan_Node* nodeOut, struct Address* addr, ui
 {
     Bits_memset(nodeOut, 0, PFChan_Node_SIZE);
     nodeOut->version_be = Endian_hostToBigEndian32(addr->protocolVersion);
-    nodeOut->metric_be = Endian_hostToBigEndian32(metric);
+    nodeOut->metric_be = Endian_hostToBigEndian32(metric | 0xffff0000);
     nodeOut->path_be = Endian_hostToBigEndian64(addr->path);
-    Bits_memcpyConst(nodeOut->publicKey, addr->key, 32);
-    Bits_memcpyConst(nodeOut->ip6, addr->ip6.bytes, 16);
+    Bits_memcpy(nodeOut->publicKey, addr->key, 32);
+    Bits_memcpy(nodeOut->ip6, addr->ip6.bytes, 16);
 }
 
 static Iface_DEFUN sendNode(struct Message* msg,
@@ -128,6 +137,11 @@ static Iface_DEFUN sendNode(struct Message* msg,
                             uint32_t metric,
                             struct Pathfinder_pvt* pf)
 {
+    if (addr->protocolVersion > 19) {
+        Log_debug(pf->log, "not sending [%s] because version new",
+            Address_toString(addr, msg->alloc)->bytes);
+        return NULL;
+    }
     Message_reset(msg);
     Message_shift(msg, PFChan_Node_SIZE, NULL);
     nodeForAddress((struct PFChan_Node*) msg->bytes, addr, metric);
@@ -142,8 +156,14 @@ static void onBestPathChange(void* vPathfinder, struct Node_Two* node)
 {
     struct Pathfinder_pvt* pf = Identity_check((struct Pathfinder_pvt*) vPathfinder);
     struct Allocator* alloc = Allocator_child(pf->alloc);
-    struct Message* msg = Message_new(0, 256, alloc);
-    Iface_CALL(sendNode, msg, &node->address, 0xffffffffu - Node_getReach(node), pf);
+    if (pf->bestPathChanges > 128) {
+        String* addrPrinted = Address_toString(&node->address, alloc);
+        Log_debug(pf->log, "Ignore best path change from NodeStore [%s]", addrPrinted->bytes);
+    } else {
+        pf->bestPathChanges++;
+        struct Message* msg = Message_new(0, 256, alloc);
+        Iface_CALL(sendNode, msg, &node->address, Node_getCost(node), pf);
+    }
     Allocator_free(alloc);
 }
 
@@ -155,7 +175,7 @@ static Iface_DEFUN connected(struct Pathfinder_pvt* pf, struct Message* msg)
     Message_pop(msg, &conn, PFChan_Core_Connect_SIZE, NULL);
     Assert_true(!msg->length);
 
-    Bits_memcpyConst(pf->myAddr.key, conn.publicKey, 32);
+    Bits_memcpy(pf->myAddr.key, conn.publicKey, 32);
     Address_getPrefix(&pf->myAddr);
     pf->myAddr.path = 1;
 
@@ -167,6 +187,10 @@ static Iface_DEFUN connected(struct Pathfinder_pvt* pf, struct Message* msg)
     pf->rumorMill = RumorMill_new(pf->alloc, &pf->myAddr, RUMORMILL_CAPACITY, pf->log, "extern");
 
     pf->nodeStore = NodeStore_new(&pf->myAddr, pf->alloc, pf->base, pf->log, pf->rumorMill);
+
+    if (pf->pub.fullVerify) {
+        NodeStore_setFullVerify(pf->nodeStore, true);
+    }
 
     pf->nodeStore->onBestPathChange = onBestPathChange;
     pf->nodeStore->onBestPathChangeCtx = pf;
@@ -224,8 +248,8 @@ static void addressForNode(struct Address* addrOut, struct Message* msg)
     Assert_true(!msg->length);
     addrOut->protocolVersion = Endian_bigEndianToHost32(node.version_be);
     addrOut->path = Endian_bigEndianToHost64(node.path_be);
-    Bits_memcpyConst(addrOut->key, node.publicKey, 32);
-    Bits_memcpyConst(addrOut->ip6.bytes, node.ip6, 16);
+    Bits_memcpy(addrOut->key, node.publicKey, 32);
+    Bits_memcpy(addrOut->ip6.bytes, node.ip6, 16);
 }
 
 static Iface_DEFUN switchErr(struct Message* msg, struct Pathfinder_pvt* pf)
@@ -244,7 +268,7 @@ static Iface_DEFUN switchErr(struct Message* msg, struct Pathfinder_pvt* pf)
     struct Node_Link* link = NodeStore_linkForPath(pf->nodeStore, path);
     uint8_t nodeAddr[16];
     if (link) {
-        Bits_memcpyConst(nodeAddr, link->child->address.ip6.bytes, 16);
+        Bits_memcpy(nodeAddr, link->child->address.ip6.bytes, 16);
     }
 
     NodeStore_brokenLink(pf->nodeStore, path, pathAtErrorHop);
@@ -261,6 +285,9 @@ static Iface_DEFUN searchReq(struct Message* msg, struct Pathfinder_pvt* pf)
 {
     uint8_t addr[16];
     Message_pop(msg, addr, 16, NULL);
+    Message_pop32(msg, NULL);
+    uint32_t version = Message_pop32(msg, NULL);
+    if (version && version >= 20) { return NULL; }
     Assert_true(!msg->length);
     uint8_t printedAddr[40];
     AddrTools_printIp(printedAddr, addr);
@@ -352,6 +379,8 @@ static Iface_DEFUN discoveredPath(struct Message* msg, struct Pathfinder_pvt* pf
     // from getting any actual work done.
     if (nn->address.path < addr.path) { return NULL; }
 
+    addr.protocolVersion = nn->address.protocolVersion;
+
     Log_debug(pf->log, "Discovered path [%s]", Address_toString(&addr, msg->alloc)->bytes);
     RumorMill_addNode(pf->rumorMill, &addr);
     return NULL;
@@ -375,8 +404,8 @@ static Iface_DEFUN incomingMsg(struct Message* msg, struct Pathfinder_pvt* pf)
     struct Address addr;
     struct RouteHeader* hdr = (struct RouteHeader*) msg->bytes;
     Message_shift(msg, -(RouteHeader_SIZE + DataHeader_SIZE), NULL);
-    Bits_memcpyConst(addr.ip6.bytes, hdr->ip6, 16);
-    Bits_memcpyConst(addr.key, hdr->publicKey, 32);
+    Bits_memcpy(addr.ip6.bytes, hdr->ip6, 16);
+    Bits_memcpy(addr.key, hdr->publicKey, 32);
     addr.protocolVersion = Endian_bigEndianToHost32(hdr->version_be);
     addr.padding = 0;
     addr.path = Endian_bigEndianToHost64(hdr->sh.label_be);
@@ -410,6 +439,8 @@ static Iface_DEFUN incomingFromEventIf(struct Message* msg, struct Iface* eventI
         Assert_true(ev == PFChan_Core_CONNECT);
         return connected(pf, msg);
     }
+    // Let the PF send another 128 path changes again because it's basically a new tick.
+    pf->bestPathChanges = 0;
     switch (ev) {
         case PFChan_Core_SWITCH_ERR: return switchErr(msg, pf);
         case PFChan_Core_SEARCH_REQ: return searchReq(msg, pf);
@@ -421,6 +452,8 @@ static Iface_DEFUN incomingFromEventIf(struct Message* msg, struct Iface* eventI
         case PFChan_Core_MSG: return incomingMsg(msg, pf);
         case PFChan_Core_PING: return handlePing(msg, pf);
         case PFChan_Core_PONG: return handlePong(msg, pf);
+        case PFChan_Core_UNSETUP_SESSION:
+        case PFChan_Core_CTRL_MSG: return NULL;
         default:;
     }
     Assert_failure("unexpected event [%d]", ev);

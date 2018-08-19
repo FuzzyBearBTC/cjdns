@@ -10,7 +10,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include "interface/tuntap/TAPWrapper.h"
 #include "interface/tuntap/TUNMessageType.h"
@@ -79,8 +79,8 @@ static Iface_DEFUN sendMessage(struct Message* msg, struct Iface* internal)
 
     uint16_t etherType = TUNMessageType_pop(msg, NULL);
     struct Ethernet eth = { .ethertype = etherType };
-    Bits_memcpyConst(eth.srcAddr, TAPWrapper_LOCAL_MAC, Ethernet_ADDRLEN);
-    Bits_memcpyConst(eth.destAddr, tw->pub.peerAddress, Ethernet_ADDRLEN);
+    Bits_memcpy(eth.srcAddr, TAPWrapper_LOCAL_MAC, Ethernet_ADDRLEN);
+    Bits_memcpy(eth.destAddr, tw->pub.peerAddress, Ethernet_ADDRLEN);
     if (Bits_isZero(tw->pub.peerAddress, Ethernet_ADDRLEN)) {
         Log_debug(tw->log, "DROP Packet because peers MAC is not yet known");
         return NULL;

@@ -10,7 +10,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #ifndef BencMessageReader_H
 #define BencMessageReader_H
@@ -20,7 +20,7 @@
 #include "memory/Allocator.h"
 #include "wire/Message.h"
 #include "util/Linker.h"
-Linker_require("benc/serialization/standard/BencMessageReader.c")
+Linker_require("benc/serialization/standard/BencMessageReader.c");
 
 Dict* BencMessageReader_read(struct Message* msg, struct Allocator* alloc, struct Except* eh);
 

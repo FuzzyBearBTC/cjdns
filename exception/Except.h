@@ -10,14 +10,14 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #ifndef Except_H
 #define Except_H
 
 #include "util/Gcc.h"
 #include "util/Linker.h"
-Linker_require("exception/Except.c")
+Linker_require("exception/Except.c");
 
 #define Except_BUFFER_SZ 1024
 

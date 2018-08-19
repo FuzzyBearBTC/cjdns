@@ -10,7 +10,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include "crypto/AddressCalc.h"
 #include "crypto/CryptoAuth_pvt.h"
@@ -90,6 +90,8 @@ struct InterfaceController_Iface_pvt
     String* name;
     int beaconState;
     struct Map_EndpointsBySockaddr peerMap;
+    /** The number of the next peer to try pinging, this iterates through the list of peers. */
+    uint32_t lastPeerPinged;
     struct InterfaceController_pvt* ic;
     struct Allocator* alloc;
     Identity
@@ -207,11 +209,14 @@ static void sendPeer(uint32_t pathfinderId,
     struct Allocator* alloc = Allocator_child(ic->alloc);
     struct Message* msg = Message_new(PFChan_Node_SIZE, 512, alloc);
     struct PFChan_Node* node = (struct PFChan_Node*) msg->bytes;
-    Bits_memcpyConst(node->ip6, peer->addr.ip6.bytes, 16);
-    Bits_memcpyConst(node->publicKey, peer->addr.key, 32);
+    Bits_memcpy(node->ip6, peer->addr.ip6.bytes, 16);
+    Bits_memcpy(node->publicKey, peer->addr.key, 32);
     node->path_be = Endian_hostToBigEndian64(peer->addr.path);
     node->metric_be = 0xffffffff;
     node->version_be = Endian_hostToBigEndian32(peer->addr.protocolVersion);
+    if (ev != PFChan_Core_PEER_GONE) {
+        Assert_true(peer->addr.protocolVersion);
+    }
     Message_push32(msg, pathfinderId, NULL);
     Message_push32(msg, ev, NULL);
     Iface_send(&ic->eventEmitterIf, msg);
@@ -298,24 +303,37 @@ static void iciPing(struct InterfaceController_Iface_pvt* ici, struct InterfaceC
     uint64_t now = Time_currentTimeMilliseconds(ic->eventBase);
 
     // scan for endpoints have not sent anything recently.
-    uint32_t startAt = Random_uint32(ic->rand) % ici->peerMap.count;
+    uint32_t startAt = ici->lastPeerPinged = (ici->lastPeerPinged + 1) % ici->peerMap.count;
     for (uint32_t i = startAt, count = 0; count < ici->peerMap.count;) {
         i = (i + 1) % ici->peerMap.count;
         count++;
 
         struct Peer* ep = ici->peerMap.values[i];
 
-        if (now < ep->timeOfLastMessage + ic->pingAfterMilliseconds) {
-            if (now < ep->timeOfLastPing + ic->pingAfterMilliseconds) {
-                // Possibly an out-of-date node which is mangling packets, don't ping too often
-                // because it causes the RumorMill to be filled with this node over and over.
-                continue;
-            }
-        }
-
         uint8_t keyIfDebug[56];
         if (Defined(Log_DEBUG)) {
             Base32_encode(keyIfDebug, 56, ep->caSession->herPublicKey, 32);
+        }
+
+        if (ep->addr.protocolVersion && now < ep->timeOfLastMessage + ic->pingAfterMilliseconds) {
+            // It's sending traffic so leave it alone.
+
+            // wait just a minute here !
+            // There is a risk that the NodeStore somehow forgets about our peers while the peers
+            // are still happily sending traffic. To break this bad cycle lets just send a PEER
+            // message once per second for whichever peer is the first that we address.
+            if (count == 1 && ep->state == InterfaceController_PeerState_ESTABLISHED) {
+                Log_debug(ic->logger, "Notifying about peer number [%d/%d] [%s]",
+                    i, ici->peerMap.count, keyIfDebug);
+                sendPeer(0xffffffff, PFChan_Core_PEER, ep);
+            }
+
+            continue;
+        }
+        if (now < ep->timeOfLastPing + ic->pingAfterMilliseconds) {
+            // Possibly an out-of-date node which is mangling packets, don't ping too often
+            // because it causes the RumorMill to be filled with this node over and over.
+            continue;
         }
 
         if (ep->isIncomingConnection && now > ep->timeOfLastMessage + ic->forgetAfterMilliseconds) {
@@ -388,7 +406,12 @@ static void moveEndpointIfNeeded(struct Peer* ep)
             Assert_true(ep->switchIf.connectedIf->send);
             Assert_true(thisEp->switchIf.connectedIf->send);
             Allocator_free(thisEp->alloc);
-            Assert_true(!thisEp->switchIf.connectedIf->send);
+
+            // This check cannot really be relied upon because thisEp->alloc is what
+            // allocates thisEp and if the free is not blocked by an asynchronous onFree job
+            // then it could overwrite and free the memory in which case the assertion would fail.
+            //Assert_true(!thisEp->switchIf.connectedIf->send);
+
             Assert_true(ep->switchIf.connectedIf->send);
             return;
         }
@@ -408,12 +431,12 @@ static Iface_DEFUN receivedPostCryptoAuth(struct Message* msg,
         ep->state = caState;
         SwitchCore_setInterfaceState(&ep->switchIf, SwitchCore_setInterfaceState_ifaceState_UP);
 
-        Bits_memcpyConst(ep->addr.key, ep->caSession->herPublicKey, 32);
+        Bits_memcpy(ep->addr.key, ep->caSession->herPublicKey, 32);
         Address_getPrefix(&ep->addr);
 
-        if (caState == CryptoAuth_ESTABLISHED) {
+        if (caState == CryptoAuth_State_ESTABLISHED) {
             moveEndpointIfNeeded(ep);
-            sendPeer(0xffffffff, PFChan_Core_PEER, ep);
+            //sendPeer(0xffffffff, PFChan_Core_PEER, ep);// version is not known at this point.
         } else {
             // prevent some kinds of nasty things which could be done with packet replay.
             // This is checking the message switch header and will drop it unless the label
@@ -438,7 +461,7 @@ static Iface_DEFUN receivedPostCryptoAuth(struct Message* msg,
             }
         }
     } else if (ep->state == InterfaceController_PeerState_UNRESPONSIVE
-        && caState == CryptoAuth_ESTABLISHED)
+        && caState == CryptoAuth_State_ESTABLISHED)
     {
         ep->state = InterfaceController_PeerState_ESTABLISHED;
         SwitchCore_setInterfaceState(&ep->switchIf, SwitchCore_setInterfaceState_ifaceState_UP);
@@ -488,7 +511,10 @@ static int closeInterface(struct Allocator_OnFreeJob* job)
     sendPeer(0xffffffff, PFChan_Core_PEER_GONE, toClose);
 
     int index = Map_EndpointsBySockaddr_indexForHandle(toClose->handle, &toClose->ici->peerMap);
-    Assert_true(index >= 0 && toClose->ici->peerMap.values[index] == toClose);
+    Log_debug(toClose->ici->ic->logger,
+        "Closing interface [%d] with handle [%u]", index, toClose->handle);
+    Assert_true(index >= 0);
+    Assert_true(toClose->ici->peerMap.values[index] == toClose);
     Map_EndpointsBySockaddr_remove(index, &toClose->ici->peerMap);
     return 0;
 }
@@ -528,7 +554,7 @@ static Iface_DEFUN handleBeacon(struct Message* msg, struct InterfaceController_
 
     struct Address addr;
     Bits_memset(&addr, 0, sizeof(struct Address));
-    Bits_memcpyConst(addr.key, beacon.publicKey, 32);
+    Bits_memcpy(addr.key, beacon.publicKey, 32);
     addr.protocolVersion = Endian_bigEndianToHost32(beacon.version_be);
     Address_getPrefix(&addr);
 
@@ -537,7 +563,8 @@ static Iface_DEFUN handleBeacon(struct Message* msg, struct InterfaceController_
         printedAddr = Address_toString(&addr, msg->alloc);
     }
 
-    if (addr.ip6.bytes[0] != 0xfc || !Bits_memcmp(ic->ca->publicKey, addr.key, 32)) {
+    if (!AddressCalc_validAddress(addr.ip6.bytes)
+        || !Bits_memcmp(ic->ca->publicKey, addr.key, 32)) {
         Log_debug(ic->logger, "handleBeacon invalid key [%s]", printedAddr->bytes);
         return NULL;
     }
@@ -569,13 +596,12 @@ static Iface_DEFUN handleBeacon(struct Message* msg, struct InterfaceController_
     int setIndex = Map_EndpointsBySockaddr_put(&lladdr, &ep, &ici->peerMap);
     ep->handle = ici->peerMap.handles[setIndex];
     ep->isIncomingConnection = true;
-    Bits_memcpyConst(&ep->addr, &addr, sizeof(struct Address));
+    Bits_memcpy(&ep->addr, &addr, sizeof(struct Address));
     Identity_set(ep);
     Allocator_onFree(epAlloc, closeInterface, ep);
 
     ep->peerLink = PeerLink_new(ic->eventBase, epAlloc);
-    ep->caSession =
-        CryptoAuth_newSession(ic->ca, epAlloc, beacon.publicKey, addr.ip6.bytes, false, "outer");
+    ep->caSession = CryptoAuth_newSession(ic->ca, epAlloc, beacon.publicKey, false, "outer");
     CryptoAuth_setAuth(beaconPass, NULL, ep->caSession);
 
     ep->switchIf.send = sendFromSwitch;
@@ -610,10 +636,12 @@ static Iface_DEFUN handleUnexpectedIncoming(struct Message* msg,
 {
     struct InterfaceController_pvt* ic = ici->ic;
 
-    struct Allocator* epAlloc = Allocator_child(ici->alloc);
-
     struct Sockaddr* lladdr = (struct Sockaddr*) msg->bytes;
     Message_shift(msg, -lladdr->addrLen, NULL);
+    if (msg->length < CryptoHeader_SIZE) {
+        return NULL;
+    }
+    struct Allocator* epAlloc = Allocator_child(ici->alloc);
     lladdr = Sockaddr_clone(lladdr, epAlloc);
 
     Assert_true(!((uintptr_t)msg->bytes % 4) && "alignment fault");
@@ -625,7 +653,8 @@ static Iface_DEFUN handleUnexpectedIncoming(struct Message* msg,
     ep->lladdr = lladdr;
     ep->alloc = epAlloc;
     ep->peerLink = PeerLink_new(ic->eventBase, epAlloc);
-    ep->caSession = CryptoAuth_newSession(ic->ca, epAlloc, NULL, NULL, true, "outer");
+    struct CryptoHeader* ch = (struct CryptoHeader*) msg->bytes;
+    ep->caSession = CryptoAuth_newSession(ic->ca, epAlloc, ch->publicKey, true, "outer");
     if (CryptoAuth_decrypt(ep->caSession, msg)) {
         // If the first message is a dud, drop all state for this peer.
         // probably some random crap that wandered in the socket.
@@ -654,8 +683,8 @@ static Iface_DEFUN handleUnexpectedIncoming(struct Message* msg,
     ep->timeOfLastMessage =
         Time_currentTimeMilliseconds(ic->eventBase) - ic->pingAfterMilliseconds - 1;
 
-    Bits_memcpyConst(ep->addr.key, ep->caSession->herPublicKey, 32);
-    Bits_memcpyConst(ep->addr.ip6.bytes, ep->caSession->herIp6, 16);
+    Bits_memcpy(ep->addr.key, ep->caSession->herPublicKey, 32);
+    Bits_memcpy(ep->addr.ip6.bytes, ep->caSession->herIp6, 16);
     Log_info(ic->logger, "Added peer [%s] from incoming message",
         Address_toString(&ep->addr, msg->alloc)->bytes);
 
@@ -698,6 +727,10 @@ static Iface_DEFUN handleIncomingFromWire(struct Message* msg, struct Iface* add
         return NULL;
     }
     PeerLink_recv(msg, ep->peerLink);
+    if (ep->state == InterfaceController_PeerState_ESTABLISHED &&
+        CryptoAuth_getState(ep->caSession) != CryptoAuth_State_ESTABLISHED) {
+        sendPeer(0xffffffff, PFChan_Core_PEER_GONE, ep);
+    }
     return receivedPostCryptoAuth(msg, ep, ici->ic);
 }
 
@@ -842,15 +875,14 @@ int InterfaceController_bootstrapPeer(struct InterfaceController* ifc,
     ep->lladdr = lladdr;
     ep->ici = ici;
     ep->isIncomingConnection = false;
-    Bits_memcpyConst(ep->addr.key, herPublicKey, 32);
+    Bits_memcpy(ep->addr.key, herPublicKey, 32);
     Address_getPrefix(&ep->addr);
     Identity_set(ep);
     Allocator_onFree(epAlloc, closeInterface, ep);
     Allocator_onFree(alloc, freeAlloc, epAlloc);
 
     ep->peerLink = PeerLink_new(ic->eventBase, epAlloc);
-    ep->caSession =
-        CryptoAuth_newSession(ic->ca, epAlloc, herPublicKey, ep->addr.ip6.bytes, false, "outer");
+    ep->caSession = CryptoAuth_newSession(ic->ca, epAlloc, herPublicKey, false, "outer");
     CryptoAuth_setAuth(password, login, ep->caSession);
     if (user) {
         ep->caSession->displayName = String_clone(user, epAlloc);
@@ -908,7 +940,8 @@ int InterfaceController_getPeerStats(struct InterfaceController* ifController,
             struct Peer* peer = Identity_check((struct Peer*) ici->peerMap.values[i]);
             struct InterfaceController_PeerStats* s = &stats[xcount];
             xcount++;
-            Bits_memcpyConst(&s->addr, &peer->addr, sizeof(struct Address));
+            s->lladdr = Sockaddr_clone(peer->lladdr, alloc);
+            Bits_memcpy(&s->addr, &peer->addr, sizeof(struct Address));
             s->bytesOut = peer->bytesOut;
             s->bytesIn = peer->bytesIn;
             s->timeOfLastMessage = peer->timeOfLastMessage;
@@ -933,6 +966,23 @@ int InterfaceController_getPeerStats(struct InterfaceController* ifController,
 
     *statsOut = stats;
     return count;
+}
+
+void InterfaceController_resetPeering(struct InterfaceController* ifController,
+                                      uint8_t herPublicKey[32])
+{
+    struct InterfaceController_pvt* ic =
+        Identity_check((struct InterfaceController_pvt*) ifController);
+
+    for (int j = 0; j < ic->icis->length; j++) {
+        struct InterfaceController_Iface_pvt* ici = ArrayList_OfIfaces_get(ic->icis, j);
+        for (int i = 0; i < (int)ici->peerMap.count; i++) {
+            struct Peer* peer = ici->peerMap.values[i];
+            if (!herPublicKey || !Bits_memcmp(herPublicKey, peer->caSession->herPublicKey, 32)) {
+                CryptoAuth_reset(peer->caSession);
+            }
+        }
+    }
 }
 
 int InterfaceController_disconnectPeer(struct InterfaceController* ifController,
@@ -985,7 +1035,7 @@ struct InterfaceController* InterfaceController_new(struct CryptoAuth* ca,
     struct Allocator* alloc = Allocator_child(allocator);
     struct InterfaceController_pvt* out =
         Allocator_malloc(alloc, sizeof(struct InterfaceController_pvt));
-    Bits_memcpyConst(out, (&(struct InterfaceController_pvt) {
+    Bits_memcpy(out, (&(struct InterfaceController_pvt) {
         .alloc = alloc,
         .ca = ca,
         .rand = rand,
@@ -1022,7 +1072,7 @@ struct InterfaceController* InterfaceController_new(struct CryptoAuth* ca,
     if (ret) {
         Log_warn(logger, "CryptoAuth_addUser() returned [%d]", ret);
     }
-    Bits_memcpyConst(out->beacon.publicKey, ca->publicKey, 32);
+    Bits_memcpy(out->beacon.publicKey, ca->publicKey, 32);
     out->beacon.version_be = Endian_hostToBigEndian32(Version_CURRENT_PROTOCOL);
 
     Timeout_setTimeout(beaconInterval, out, BEACON_INTERVAL, eventBase, alloc);

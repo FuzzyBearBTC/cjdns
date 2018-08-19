@@ -10,14 +10,14 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #ifndef Process_H
 #define Process_H
 
 #include "memory/Allocator.h"
 #include "util/Linker.h"
-Linker_require("util/events/libuv/Process.c")
+Linker_require("util/events/libuv/Process.c");
 
 #include <stdint.h>
 

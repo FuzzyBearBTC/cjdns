@@ -10,7 +10,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include "crypto/random/test/DeterminentRandomSeed.h"
 #include "util/Bits.h"
@@ -44,7 +44,7 @@ struct RandomSeed* DeterminentRandomSeed_new(struct Allocator* alloc, uint8_t bu
     }));
     Identity_set(drs);
     if (buff) {
-        Bits_memcpyConst(drs->buff, buff, 64);
+        Bits_memcpy(drs->buff, buff, 64);
     } else {
         Bits_memset(drs->buff, 4, 64);
     }

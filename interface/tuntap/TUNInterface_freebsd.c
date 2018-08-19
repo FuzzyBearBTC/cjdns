@@ -10,7 +10,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include "interface/tuntap/TUNInterface.h"
 #include "exception/Except.h"
@@ -99,6 +99,13 @@ struct Iface* TUNInterface_new(const char* interfaceName,
     if (ioctl(tunFd,TUNSIFHEAD,&tunhead) == -1) {
         error = "TUNSIFHEAD";
     }
+
+    // This is not a point-to-point interface
+    int tunsifmode = IFF_BROADCAST;
+    if (ioctl(tunFd,TUNSIFMODE,&tunsifmode) == -1) {
+        error = "TUNSIFMODE";
+    }
+
 
     if (error) {
         int err = errno;

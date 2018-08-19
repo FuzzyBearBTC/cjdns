@@ -10,7 +10,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #ifndef LinuxRandomUuidSysctlRandomSeed_H
 #define LinuxRandomUuidSysctlRandomSeed_H
@@ -21,7 +21,7 @@
 #include "util/Linker.h"
 
 #if defined(linux) && !defined(__ILP32__) && !defined(__aarch64__) && defined(__GLIBC__)
-    Linker_require("crypto/random/seed/LinuxRandomUuidSysctlRandomSeed.c")
+    Linker_require("crypto/random/seed/LinuxRandomUuidSysctlRandomSeed.c");
     struct RandomSeed* LinuxRandomUuidSysctlRandomSeed_new(struct Allocator* alloc);
     RandomSeedProvider_register(LinuxRandomUuidSysctlRandomSeed_new)
 #endif

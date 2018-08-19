@@ -10,7 +10,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #ifndef Bits_H
 #define Bits_H
@@ -18,7 +18,7 @@
 #include "util/Assert.h"
 #include "util/Gcc.h"
 #include "util/Linker.h"
-Linker_require("util/Bits.c")
+Linker_require("util/Bits.c");
 
 #include <stdint.h>
 #include <stddef.h>
@@ -41,11 +41,7 @@ static inline int Bits_ffs64(uint64_t number)
 
 static inline int Bits_popCountx64(uint64_t number)
 {
-    int out = 0;
-    for (int i = 0; i < 64; i++) {
-        out += ((number >> i) & 1);
-    }
-    return out;
+    return __builtin_popcountll(number);
 }
 
 static inline int Bits_popCountx32(uint32_t number)
@@ -144,30 +140,6 @@ static inline void* Bits__memcpy(void* out,
     }
     return __builtin_memcpy(out, in, length);
 }
-
-/**
- * Bits_memcpyConst()
- * Alias to POSIX memcpy(), will not compile unless the number of bytes to be copied
- * is known at compile time. This allows for defensive development by declaring intent to copy
- * either a static number of bytes of an unknown number of bytes.
- *
- * @param out the buffer to write to.
- * @param in the buffer to read from.
- * @param length the number of bytes to copy.
- */
-#define Bits_memcpyConst(a,b,c) \
-    do {                                       \
-        Assert_true(__builtin_constant_p(c));  \
-        Bits_memcpy(a,b,c);                    \
-    } while (0)
-// CHECKFILES_IGNORE
-
-#define Bits_memmoveConst(a,b,c) \
-    do {                                       \
-        Assert_true(__builtin_constant_p(c));  \
-        Bits_memmove(a,b,c);                   \
-    } while (0)
-// CHECKFILES_IGNORE
 
 void* Bits_memmem(const void* haystack, size_t haystackLen, const void* needle, size_t needleLen);
 

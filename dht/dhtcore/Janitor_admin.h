@@ -10,16 +10,20 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #ifndef Janitor_admin_H
 #define Janitor_admin_H
+
+#ifdef SUBNODE
+    #error "this file should not be included in subnode"
+#endif
 
 #include "memory/Allocator.h"
 #include "admin/Admin.h"
 #include "dht/dhtcore/Janitor.h"
 #include "util/Linker.h"
-Linker_require("dht/dhtcore/Janitor_admin.c")
+Linker_require("dht/dhtcore/Janitor_admin.c");
 
 void Janitor_admin_register(struct Janitor* janitor, struct Admin* admin, struct Allocator* alloc);
 

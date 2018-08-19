@@ -10,7 +10,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #ifndef Map_H
 #define Map_H
@@ -156,8 +156,8 @@ static inline int Map_FUNCTION(remove)(int index, struct Map_CONTEXT* map)
             // No handles, we can just fold the top entry down on one to remove.
             map->count--;
             map->hashCodes[index] = map->hashCodes[map->count];
-            Bits_memcpyConst(&map->keys[index], &map->keys[map->count], sizeof(Map_KEY_TYPE));
-            Bits_memcpyConst(&map->values[index], &map->values[map->count], sizeof(Map_VALUE_TYPE));
+            Bits_memcpy(&map->keys[index], &map->keys[map->count], sizeof(Map_KEY_TYPE));
+            Bits_memcpy(&map->values[index], &map->values[map->count], sizeof(Map_VALUE_TYPE));
         #endif
         return 0;
     } else if (index == (int) map->count - 1) {
@@ -213,11 +213,11 @@ static inline int Map_FUNCTION(put)(Map_VALUE_TYPE* value,
         #endif
         #ifdef Map_ENABLE_KEYS
             map->hashCodes[i] = (Map_FUNCTION(hash)(key));
-            Bits_memcpyConst(&map->keys[i], key, sizeof(Map_KEY_TYPE));
+            Bits_memcpy(&map->keys[i], key, sizeof(Map_KEY_TYPE));
         #endif
     }
 
-    Bits_memcpyConst(&map->values[i], value, sizeof(Map_VALUE_TYPE));
+    Bits_memcpy(&map->values[i], value, sizeof(Map_VALUE_TYPE));
 
     return i;
 }

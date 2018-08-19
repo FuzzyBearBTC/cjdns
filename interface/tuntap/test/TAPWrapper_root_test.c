@@ -10,7 +10,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include "interface/tuntap/TUNInterface.h"
 #include "memory/Allocator.h"
@@ -22,6 +22,7 @@
 #include "interface/tuntap/test/TUNTools.h"
 #include "interface/tuntap/TAPWrapper.h"
 #include "interface/tuntap/NDPServer.h"
+#include "interface/tuntap/ARPServer.h"
 
 int main(int argc, char** argv)
 {
@@ -38,12 +39,13 @@ int main(int argc, char** argv)
 
     // Now setup the NDP server so the tun will work correctly.
     struct NDPServer* ndp = NDPServer_new(&tapWrapper->internal, log, TAPWrapper_LOCAL_MAC, alloc);
-    ndp->advertisePrefix[0] = 0xfd;
-    ndp->prefixLen = 8;
+    struct ARPServer* arp = ARPServer_new(&ndp->internal, log, TAPWrapper_LOCAL_MAC, alloc);
 
-    NetDev_addAddress(assignedIfName, addrA, 126, log, NULL);
+    addrA->flags |= Sockaddr_flags_PREFIX;
+    addrA->prefix = 126;
+    NetDev_addAddress(assignedIfName, addrA, log, NULL);
 
-    TUNTools_echoTest(addrA, addrB, TUNTools_genericIP6Echo, &ndp->internal, base, log, alloc);
+    TUNTools_echoTest(addrA, addrB, TUNTools_genericIP6Echo, &arp->internal, base, log, alloc);
     Allocator_free(alloc);
     return 0;
 }

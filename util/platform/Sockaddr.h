@@ -10,7 +10,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #ifndef Sockaddr_H
 #define Sockaddr_H
@@ -18,7 +18,7 @@
 #include "memory/Allocator.h"
 #include "util/Endian.h"
 #include "util/Linker.h"
-Linker_require("util/platform/Sockaddr.c")
+Linker_require("util/platform/Sockaddr.c");
 
 #include <stdint.h>
 
@@ -26,9 +26,16 @@ struct Sockaddr
 {
     /** the length of this sockaddr, this field is included in the length. */
     uint16_t addrLen;
-    #define Sockaddr_flags_BCAST 1
+
+    #define Sockaddr_flags_BCAST  1
+    #define Sockaddr_flags_PREFIX (1<<1)
     uint16_t flags;
-    uint32_t pad;
+
+    /** Only applies if flags & Sockaddr_flags_PREFIX is true. */
+    uint8_t prefix;
+
+    uint8_t pad1;
+    uint16_t pad2;
 };
 
 /** The number of bytes of space taken for representing the addrLen at the beginning. */
@@ -48,6 +55,8 @@ const struct Sockaddr* const Sockaddr_LOOPBACK_le;
 #define Sockaddr_LOOPBACK (Endian_isBigEndian() ? Sockaddr_LOOPBACK_be : Sockaddr_LOOPBACK_le)
 
 const struct Sockaddr* const Sockaddr_LOOPBACK6;
+
+int Sockaddr_getPrefix(struct Sockaddr* addr);
 
 /**
  * Parse a sockaddr from a string, may be IP4 or IP6.
@@ -117,8 +126,6 @@ static inline const void* Sockaddr_asNativeConst(const struct Sockaddr* sa)
 {
     return (const void*)(&sa[1]);
 }
-
-struct Sockaddr* Sockaddr_fromName(char* name, struct Allocator* alloc);
 
 /**
  * Contrast with Sockaddr_fromNative(), Sockaddr_fromBytes() takes

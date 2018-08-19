@@ -10,13 +10,13 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #ifndef AddrTools_H
 #define AddrTools_H
 
 #include "util/Linker.h"
-Linker_require("util/AddrTools.c")
+Linker_require("util/AddrTools.c");
 
 #include <stdint.h>
 

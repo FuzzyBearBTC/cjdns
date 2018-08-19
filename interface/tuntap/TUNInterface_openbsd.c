@@ -10,7 +10,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include "interface/tuntap/TUNInterface.h"
 #include "exception/Except.h"
@@ -48,49 +48,34 @@ struct Iface* TUNInterface_new(const char* interfaceName,
                                    struct Allocator* alloc)
 {
     if (isTapMode) { Except_throw(eh, "tap mode not supported on this platform"); }
-
-    // to store the tunnel device index
-    int ppa = 0;
-    // Open the descriptor
-    int tunFd = open("/dev/tun0", O_RDWR);
-    if (tunFd == -1) {
-        tunFd = open("/dev/tun1", O_RDWR);
-        ppa = 1;
-    }
-    if (tunFd == -1) {
-        tunFd = open("/dev/tun2", O_RDWR);
-        ppa = 2;
-    }
-    if (tunFd == -1) {
-        tunFd = open("/dev/tun3", O_RDWR);
-        ppa = 3;
-    }
-
-    if (tunFd < 0 ) {
-        int err = errno;
-        close(tunFd);
-
-        char* error = NULL;
-        if (tunFd < 0) {
-            error = "open(\"/dev/tunX\")";
+    int err;
+    char file[TUNInterface_IFNAMSIZ];
+    int ppa = -1; // to store the tunnel device index
+    int tunFd = -1;
+    if (interfaceName && strlen(interfaceName) > 3 && !strncmp(interfaceName, "tun", 3)) {
+        snprintf(file, TUNInterface_IFNAMSIZ, "/dev/%s", interfaceName);
+        tunFd = open(file, O_RDWR);
+    } else {
+        for (int i = 0; tunFd == -1 && i < 99; i++) {
+            ppa = i;
+            snprintf(file, TUNInterface_IFNAMSIZ, "/dev/tun%d", ppa);
+            tunFd = open(file, O_RDWR);
         }
-        Except_throw(eh, "%s [%s]", error, strerror(err));
     }
-
+    if (tunFd < 0 ) {
+        err = errno;
+        close(tunFd);
+        Except_throw(eh, "%s [%s]", "open(\"/dev/tunX\")", strerror(err));
+    }
     // Since devices are numbered rather than named, it's not possible to have tun0 and cjdns0
     // so we'll skip the pretty names and call everything tunX
     if (assignedInterfaceName) {
-        snprintf(assignedInterfaceName, TUNInterface_IFNAMSIZ, "tun%d", ppa);
+        if (ppa == -1) {
+            snprintf(assignedInterfaceName, TUNInterface_IFNAMSIZ, "%s", interfaceName);
+        } else {
+            snprintf(assignedInterfaceName, TUNInterface_IFNAMSIZ, "tun%d", ppa);
+        }
     }
-
-    char* error = NULL;
-
-    if (error) {
-        int err = errno;
-        close(tunFd);
-        Except_throw(eh, "%s [%s]", error, strerror(err));
-    }
-
     struct Pipe* p = Pipe_forFiles(tunFd, tunFd, base, eh, alloc);
 
     struct BSDMessageTypeWrapper* bmtw = BSDMessageTypeWrapper_new(alloc, logger);

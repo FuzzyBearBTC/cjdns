@@ -10,7 +10,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 struct BufferAllocator_pvt;
 #define Allocator_Provider_CONTEXT_TYPE struct BufferAllocator_pvt
@@ -118,6 +118,6 @@ struct Allocator* BufferAllocator__new(void* buffer,
     Identity_set(&stackAlloc);
     struct BufferAllocator_pvt* alloc =
         allocatorMalloc(&stackAlloc, sizeof(struct BufferAllocator_pvt));
-    Bits_memcpyConst(alloc, &stackAlloc, sizeof(struct BufferAllocator_pvt));
+    Bits_memcpy(alloc, &stackAlloc, sizeof(struct BufferAllocator_pvt));
     return Allocator_new(0, provideMemory, alloc, file, line);
 }

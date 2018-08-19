@@ -10,17 +10,21 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #ifndef RumorMill_H
 #define RumorMill_H
+
+#ifdef SUBNODE
+    #error "this file should not be included in subnode"
+#endif
 
 #include "dht/Address.h"
 #include "memory/Allocator.h"
 #include "util/log/Log.h"
 #include "util/Gcc.h"
 #include "util/Linker.h"
-Linker_require("dht/dhtcore/RumorMill.c")
+Linker_require("dht/dhtcore/RumorMill.c");
 
 /**
  * The rumor mill is for new nodes which have been discovered by search and getPeers requests

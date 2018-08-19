@@ -10,7 +10,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #ifndef SwitchPinger_admin_H
 #define SwitchPinger_admin_H
@@ -23,7 +23,7 @@
 #include "net/SwitchPinger.h"
 #include "util/Endian.h"
 #include "util/Linker.h"
-Linker_require("net/SwitchPinger_admin.c")
+Linker_require("net/SwitchPinger_admin.c");
 
 void SwitchPinger_admin_register(struct SwitchPinger* sp,
                                  struct Admin* admin,

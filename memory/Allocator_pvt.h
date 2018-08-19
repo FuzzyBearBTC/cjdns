@@ -10,7 +10,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #ifndef Allocator_pvt_H
 #define Allocator_pvt_H
@@ -28,8 +28,8 @@ struct Allocator_OnFreeJob_pvt {
     struct Allocator_pvt* alloc;
     struct Allocator_OnFreeJob_pvt* next;
 
-    /* prevent async jobs from being called multiple times, nonzero = done */
-    int done;
+    /* prevent async jobs from being called multiple times, nonzero = called */
+    int called;
 
     int line;
     const char* file;

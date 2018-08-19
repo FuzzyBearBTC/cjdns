@@ -38,7 +38,7 @@
     [
       "crypto_sign",
       "ed25519",
-      "ref"
+      "ref10"
     ],
     [
       "crypto_auth",
@@ -63,7 +63,7 @@
     [
       "crypto_onetimeauth",
       "poly1305",
-      "donna32"
+      "donna"
     ],
     [
       "crypto_hash",

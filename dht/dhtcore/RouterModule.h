@@ -10,10 +10,14 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #ifndef RouterModule_H
 #define RouterModule_H
+
+#ifdef SUBNODE
+    #error "this file should not be included in subnode"
+#endif
 
 #include "crypto/random/Random.h"
 #include "dht/Address.h"
@@ -24,7 +28,7 @@
 #include "util/log/Log.h"
 #include "util/events/EventBase.h"
 #include "util/Linker.h"
-Linker_require("dht/dhtcore/RouterModule.c")
+Linker_require("dht/dhtcore/RouterModule.c");
 
 #include <stdint.h>
 #include <stdbool.h>

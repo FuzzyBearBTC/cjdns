@@ -10,7 +10,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #ifndef Allocator_H
 #define Allocator_H
@@ -18,7 +18,7 @@
 #include "util/Identity.h"
 #include "util/Gcc.h"
 #include "util/Linker.h"
-Linker_require("memory/Allocator.c")
+Linker_require("memory/Allocator.c");
 
 /**
  * A handle which is provided in response to calls to Allocator_onFree().

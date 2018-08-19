@@ -10,14 +10,15 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 var Os = require('os');
 var Fs = require('fs');
 var Spawn = require('child_process').spawn;
 var nThen = require('nthen');
 var Crypto = require('crypto');
-var Semaphore = require('./Semaphore');
+var Semaphore = require('../tools/lib/Semaphore');
+var GetVersion = require('./GetVersion');
 
 /*
  * Why hello dear packager,
@@ -399,6 +400,7 @@ var compileFile = function (fileName, builder, tempDir, callback)
     var outFile = state.buildDir + '/' + getObjectFile(fileName);
     var fileContent;
     var fileObj = getFile();
+    fileObj.name = fileName;
 
     nThen(function (waitFor) {
 
@@ -884,6 +886,7 @@ var configure = module.exports.configure = function (params, configFunc) {
 
     params.buildDir = params.buildDir || 'build_' + params.systemName;
 
+    var version;
     var state;
     var builder;
     var buildStage = function () {};
@@ -914,9 +917,27 @@ var configure = module.exports.configure = function (params, configFunc) {
                 if (err) { throw err; }
 
                 state = JSON.parse(ret);
+                // cflags, ldflags and libs are setup by make.js and should not be restored.
+                state.cflags = [];
+                state.ldflags = [];
+                state.libs = [];
+                state.includeDirs = ['.'];
             }));
         }));
 
+    }).nThen(function (waitFor) {
+        if (process.env["CJDNS_RELEASE_VERSION"]) {
+            version = '' + process.env["CJDNS_RELEASE_VERSION"];
+        } else {
+            GetVersion(waitFor(function(err, data) {
+                if (err === null) {
+                    version = '' + data;
+                    version = version.replace(/(\r\n|\n|\r)/gm, "");
+                } else {
+                    version = 'unknown';
+                }
+            }));
+        }
     }).nThen(function (waitFor) {
 
         if (!state || !state.rebuildIfChanges) {
@@ -938,11 +959,13 @@ var configure = module.exports.configure = function (params, configFunc) {
         // Do the configuration step
         if (state) {
             builder = mkBuilder(state);
+            builder.config.version = version;
             return;
         }
 
         state = getStatePrototype(params);
         builder = mkBuilder(state);
+        builder.config.version = version;
         probeCompiler(state, waitFor());
 
     }).nThen(function (waitFor) {

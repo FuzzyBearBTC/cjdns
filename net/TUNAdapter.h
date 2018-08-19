@@ -10,7 +10,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #ifndef TUNAdapter_H
 #define TUNAdapter_H
@@ -19,7 +19,7 @@
 #include "memory/Allocator.h"
 #include "util/log/Log.h"
 #include "util/Linker.h"
-Linker_require("net/TUNAdapter.c")
+Linker_require("net/TUNAdapter.c");
 
 struct TUNAdapter
 {
@@ -28,8 +28,6 @@ struct TUNAdapter
     struct Iface tunIf;
 
     struct Iface ipTunnelIf;
-
-    struct Iface magicIf;
 };
 
 struct TUNAdapter* TUNAdapter_new(struct Allocator* alloc, struct Log* log, uint8_t myAddr[16]);

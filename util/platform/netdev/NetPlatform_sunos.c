@@ -10,7 +10,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include "util/platform/netdev/NetPlatform.h"
 #include "util/Assert.h"
@@ -168,6 +168,7 @@ void NetPlatform_addAddress(const char* interfaceName,
                             int prefixLen,
                             int addrFam,
                             struct Log* logger,
+                            struct Allocator* tempAlloc,
                             struct Except* eh)
 {
     if (addrFam == Sockaddr_AF_INET6) {
@@ -185,4 +186,14 @@ void NetPlatform_setMTU(const char* interfaceName,
                         struct Except* eh)
 {
     Except_throw(eh, "Not implemented in Illumos");
+}
+
+void NetPlatform_setRoutes(const char* ifName,
+                           struct Sockaddr** prefixSet,
+                           int prefixCount,
+                           struct Log* logger,
+                           struct Allocator* tempAlloc,
+                           struct Except* eh)
+{
+    Except_throw(eh, "NetPlatform_setRoutes is not implemented in this platform.");
 }

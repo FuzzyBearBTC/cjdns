@@ -10,16 +10,17 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #ifndef UpperDistributor_H
 #define UpperDistributor_H
 
+#include "dht/Address.h"
 #include "memory/Allocator.h"
 #include "net/EventEmitter.h"
 #include "util/log/Log.h"
 #include "util/Linker.h"
-Linker_require("net/UpperDistributor.c")
+Linker_require("net/UpperDistributor.c");
 
 /**
  * Connects the TUN, DHT and IpTunnel (and other?) handlers to the SessionManager.
@@ -32,10 +33,44 @@ struct UpperDistributor
     struct Iface tunAdapterIf;
 
     struct Iface ipTunnelIf;
+
+    struct Iface controlHandlerIf;
 };
+
+struct UpperDistributor_Handler
+{
+    enum ContentType type;
+    int udpPort;
+};
+
+/** If the regNum does not corrispond to an existing handler */
+#define UpperDistributor_unregisterHandler_NONEXISTANT -1
+
+/** Returns 0 unless there is an error */
+int UpperDistributor_unregisterHandler(struct UpperDistributor* ud, int regNum);
+
+/**
+ * Returns the number of elements in the list.
+ * If there are no elements, outputList is set to NULL.
+ */
+int UpperDistributor_listHandlers(struct UpperDistributor* ud,
+                                  struct UpperDistributor_Handler** outputList,
+                                  struct Allocator* alloc);
+
+/** If the port has already been registered to a different contentType */
+#define UpperDistributor_registerHandler_PORT_REGISTERED -1
+
+/**
+ * Register a handler for receiving messages of a given contentType.
+ * @return 0 unless there is an error.
+ */
+int UpperDistributor_registerHandler(struct UpperDistributor* ud,
+                                     enum ContentType ct,
+                                     int udpPort);
 
 struct UpperDistributor* UpperDistributor_new(struct Allocator* alloc,
                                               struct Log* log,
-                                              struct EventEmitter* ee);
+                                              struct EventEmitter* ee,
+                                              struct Address* myAddress);
 
 #endif

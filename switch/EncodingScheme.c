@@ -10,7 +10,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include "benc/String.h"
 #include "benc/Dict.h"
@@ -35,6 +35,22 @@ int EncodingScheme_getFormNum(struct EncodingScheme* scheme, uint64_t routeLabel
         }
     }
     return EncodingScheme_getFormNum_INVALID;
+}
+
+static bool is358(struct EncodingScheme* scheme)
+{
+    struct EncodingScheme_Form v358[3] = {
+        { .bitCount = 3, .prefixLen = 1, .prefix = 1, },
+        { .bitCount = 5, .prefixLen = 2, .prefix = 1<<1, },
+        { .bitCount = 8, .prefixLen = 2, .prefix = 0, }
+    };
+    if (scheme->count != 3) { return false; }
+    for (int i = 0; i < 3; i++) {
+        if (Bits_memcmp(&v358[i], &scheme->forms[i], sizeof(struct EncodingScheme_Form))) {
+            return false;
+        }
+    }
+    return true;
 }
 
 uint64_t EncodingScheme_convertLabel(struct EncodingScheme* scheme,
@@ -68,7 +84,9 @@ uint64_t EncodingScheme_convertLabel(struct EncodingScheme* scheme,
     // #1 ensure 0001 always references interface 1, the self interface.
     // #2 reuse interface the binary encoding for interface 1 in other EncodingForms
     //    because interface 1 cannot be expressed as anything other than 0001
-    if ((currentForm->prefix & Bits_maxBits64(currentForm->prefixLen)) == 1) {
+    if (!is358(scheme)) {
+        // don't pull this bug-workaround crap for sane encodings schemes.
+    } else if ((currentForm->prefix & Bits_maxBits64(currentForm->prefixLen)) == 1) {
         // Swap 0 and 1 if the prefix is 1, this makes 0001 alias to 1
         // because 0 can never show up in the wild, we reuse it for 1.
         Assert_true(director != 0);
@@ -101,7 +119,9 @@ uint64_t EncodingScheme_convertLabel(struct EncodingScheme* scheme,
 
     struct EncodingScheme_Form* nextForm = &scheme->forms[convertTo];
 
-    if ((nextForm->prefix & Bits_maxBits64(nextForm->prefixLen)) == 1) {
+    if (!is358(scheme)) {
+        // don't pull this bug-workaround crap for sane encodings schemes.
+    } else  if ((nextForm->prefix & Bits_maxBits64(nextForm->prefixLen)) == 1) {
         // Swap 1 and 0 back if necessary.
         if (director == 0) { director++; }
     } else if (director) {
@@ -131,8 +151,22 @@ uint64_t EncodingScheme_convertLabel(struct EncodingScheme* scheme,
 }
 
 /**
- * Decode a form from it's binary representation.
+ * Decode a form from its binary representation.
  * Can only use a maximum of 41 bits.
+ *
+ * One or more of these binary representation are bitwise concatenated to
+ * give an unsigned integer; which is encoded in **little endian** to give
+ * the serialization of Encoding Scheme.
+ *
+ * Ten least significant bits of a form are:
+ *
+ *                     1
+ *     0 1 2 3 4 5 6 7 0 1
+ *    +-+-+-+-+-+-+-+-+-+-+
+ *  0 | bitcount| preflen |
+ *    +-+-+-+-+-+-+-+-+-+-+
+ *
+ * Previous 'preflen' bits are the prefix
  *
  * @param out the output which will be populated with the encoding form data.
  * @param data the binary data in host order.
@@ -229,18 +263,23 @@ bool EncodingScheme_isSane(struct EncodingScheme* scheme)
 List* EncodingScheme_asList(struct EncodingScheme* list, struct Allocator* alloc)
 {
     Assert_ifParanoid(EncodingScheme_isSane(list));
-    String* prefixLen = String_new("prefixLen", alloc);
-    String* bitCount = String_new("bitCount", alloc);
-    String* prefix = String_new("prefix", alloc);
     List* scheme = List_new(alloc);
-    for (int i = 0; i < (int)list->count; i++) {
+    for (int i = (int)list->count - 1; i >= 0; i--) {
         Dict* form = Dict_new(alloc);
-        Dict_putInt(form, prefixLen, list->forms[i].prefixLen, alloc);
-        Dict_putInt(form, bitCount, list->forms[i].bitCount, alloc);
-        String* pfx = String_newBinary(NULL, 8, alloc);
-        uint32_t prefix_be = Endian_hostToBigEndian32(list->forms[i].prefix);
-        Hex_encode(pfx->bytes, 8, (uint8_t*)&prefix_be, 4);
-        Dict_putString(form, prefix, pfx, alloc);
+        Dict_putIntC(form, "prefixLen", list->forms[i].prefixLen, alloc);
+        Dict_putIntC(form, "bitCount", list->forms[i].bitCount, alloc);
+        if (list->forms[i].prefixLen == 0) {
+            Dict_putStringCC(form, "prefix", "", alloc);
+        } else {
+            String* pfx = String_newBinary(NULL, 8, alloc);
+            uint32_t prefix_be = Endian_hostToBigEndian32(list->forms[i].prefix);
+            Hex_encode(pfx->bytes, 8, (uint8_t*)&prefix_be, 4);
+            while (pfx->bytes[0] == '0' && pfx->len > 2) {
+                pfx->bytes += 2;
+                pfx->len -= 2;
+            }
+            Dict_putStringC(form, "prefix", pfx, alloc);
+        }
         List_addDict(scheme, form, alloc);
     }
     return scheme;
@@ -253,9 +292,9 @@ struct EncodingScheme* EncodingScheme_fromList(List* scheme, struct Allocator* a
     list->forms = Allocator_malloc(alloc, sizeof(struct EncodingScheme_Form) * list->count);
     for (int i = 0; i < (int)list->count; i++) {
         Dict* form = List_getDict(scheme, i);
-        uint64_t* prefixLen = Dict_getInt(form, String_CONST("prefixLen"));
-        uint64_t* bitCount = Dict_getInt(form, String_CONST("bitCount"));
-        String* prefixStr = Dict_getString(form, String_CONST("prefix"));
+        uint64_t* prefixLen = Dict_getIntC(form, "prefixLen");
+        uint64_t* bitCount = Dict_getIntC(form, "bitCount");
+        String* prefixStr = Dict_getStringC(form, "prefix");
         if (!prefixLen || !bitCount || !prefixStr || prefixStr->len != 8) {
             return NULL;
         }
@@ -335,7 +374,7 @@ struct EncodingScheme* EncodingScheme_deserialize(String* data,
 
         outCount += 1;
         forms = Allocator_realloc(alloc, forms, outCount * sizeof(struct EncodingScheme_Form));
-        Bits_memcpyConst(&forms[outCount-1], &next, sizeof(struct EncodingScheme_Form));
+        Bits_memcpy(&forms[outCount-1], &next, sizeof(struct EncodingScheme_Form));
     }
 
     struct EncodingScheme* out = Allocator_clone(alloc, (&(struct EncodingScheme) {
@@ -361,7 +400,7 @@ struct EncodingScheme* EncodingScheme_defineFixedWidthScheme(int bitCount, struc
         .scheme = { .count = 1, .forms = &out->form },
         .form = { .bitCount = bitCount, .prefixLen = 0, .prefix = 0, },
     };
-    Bits_memcpyConst(out, &scheme, sizeof(struct NumberCompress_FixedWidthScheme));
+    Bits_memcpy(out, &scheme, sizeof(struct NumberCompress_FixedWidthScheme));
 
     Assert_true(EncodingScheme_isSane(&out->scheme));
 

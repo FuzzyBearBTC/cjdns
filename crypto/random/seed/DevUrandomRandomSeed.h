@@ -10,7 +10,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #ifndef DevUrandomRandomSeed_H
 #define DevUrandomRandomSeed_H
@@ -21,7 +21,7 @@
 #include "util/Linker.h"
 
 #ifndef win32
-    Linker_require("crypto/random/seed/DevUrandomRandomSeed.c")
+    Linker_require("crypto/random/seed/DevUrandomRandomSeed.c");
     struct RandomSeed* DevUrandomRandomSeed_new(struct Allocator* alloc);
     RandomSeedProvider_register(DevUrandomRandomSeed_new)
 #endif

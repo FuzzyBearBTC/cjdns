@@ -10,7 +10,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #ifndef NDPServer_H
 #define NDPServer_H
@@ -20,13 +20,11 @@
 #include "util/log/Log.h"
 #include "wire/Ethernet.h"
 #include "util/Linker.h"
-Linker_require("interface/tuntap/NDPServer.c")
+Linker_require("interface/tuntap/NDPServer.c");
 
 struct NDPServer
 {
     struct Iface internal;
-    uint8_t advertisePrefix[16];
-    uint8_t prefixLen;
 };
 
 struct NDPServer* NDPServer_new(struct Iface* external,

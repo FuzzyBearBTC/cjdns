@@ -10,7 +10,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #ifndef Base10_H
 #define Base10_H
@@ -18,11 +18,12 @@
 #include "exception/Except.h"
 #include "wire/Message.h"
 #include "util/Linker.h"
-Linker_require("util/Base10.c")
+Linker_require("util/Base10.c");
 
 #include <stdint.h>
 
 void Base10_write(struct Message* msg, int64_t num, struct Except* eh);
 int64_t Base10_read(struct Message* msg, struct Except* eh);
+int Base10_fromString(uint8_t* str, int64_t* numOut);
 
 #endif

@@ -10,7 +10,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #ifndef String_H
 #define String_H
@@ -19,7 +19,7 @@
 #include "memory/Allocator.h"
 #include "util/CString.h"
 #include "util/Linker.h"
-Linker_require("benc/String.c")
+Linker_require("benc/String.c");
 
 #include <stdbool.h>
 #include <stddef.h> // NULL

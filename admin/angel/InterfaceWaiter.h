@@ -10,7 +10,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #ifndef InterfaceWaiter_H
 #define InterfaceWaiter_H
@@ -20,7 +20,7 @@
 #include "interface/Iface.h"
 #include "util/events/EventBase.h"
 #include "util/Linker.h"
-Linker_require("admin/angel/InterfaceWaiter.c")
+Linker_require("admin/angel/InterfaceWaiter.c");
 
 /**
  * Wait for incoming data on an interface.

@@ -10,12 +10,12 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 var Fs = require('fs');
 var nThen = require('nthen');
-var Semaphore = require('./Semaphore');
+var Semaphore = require('../tools/lib/Semaphore');
 var Child = require('child_process');
 
 var headerLines = [
@@ -31,7 +31,7 @@ var headerLines = [
     ' * GNU General Public License for more details.',
     ' *',
     ' * You should have received a copy of the GNU General Public License',
-    ' * along with this program.  If not, see <http://www.gnu.org/licenses/>.',
+    ' * along with this program.  If not, see <https://www.gnu.org/licenses/>.',
     ' */'
 ];
 

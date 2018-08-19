@@ -10,7 +10,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include "memory/Allocator.h"
 #include "wire/PFChan.h"
@@ -105,6 +105,7 @@ static bool PFChan_Pathfinder_sizeOk(enum PFChan_Pathfinder ev, int size)
         case PFChan_Pathfinder_SUPERIORITY:
             return (size == 8 + PFChan_Pathfinder_Superiority_SIZE);
         case PFChan_Pathfinder_NODE:
+        case PFChan_Pathfinder_SNODE:
             return (size == 8 + PFChan_Node_SIZE);
         case PFChan_Pathfinder_SENDMSG:
             return (size >= 8 + PFChan_Msg_MIN_SIZE);
@@ -115,13 +116,15 @@ static bool PFChan_Pathfinder_sizeOk(enum PFChan_Pathfinder ev, int size)
         case PFChan_Pathfinder_PEERS:
         case PFChan_Pathfinder_PATHFINDERS:
             return (size == 8);
+        case PFChan_Pathfinder_CTRL_SENDMSG:
+            return (size >= 8 + PFChan_CtrlMsg_MIN_SIZE);
         default:;
     }
     Assert_failure("invalid event [%d]", ev);
 }
 // Forget to add the event here? :)
 Assert_compileTime(PFChan_Pathfinder__TOO_LOW == 511);
-Assert_compileTime(PFChan_Pathfinder__TOO_HIGH == 521);
+Assert_compileTime(PFChan_Pathfinder__TOO_HIGH == 523);
 
 static bool PFChan_Core_sizeOk(enum PFChan_Core ev, int size)
 {
@@ -144,6 +147,7 @@ static bool PFChan_Core_sizeOk(enum PFChan_Core ev, int size)
         case PFChan_Core_SESSION:
         case PFChan_Core_SESSION_ENDED:
         case PFChan_Core_DISCOVERED_PATH:
+        case PFChan_Core_UNSETUP_SESSION:
             return (size == 8 + PFChan_Node_SIZE);
 
         case PFChan_Core_MSG:
@@ -152,13 +156,17 @@ static bool PFChan_Core_sizeOk(enum PFChan_Core ev, int size)
         case PFChan_Core_PING:
         case PFChan_Core_PONG:
             return (size == 8 + PFChan_Ping_SIZE);
+
+        case PFChan_Core_CTRL_MSG:
+            return (size >= 8 + PFChan_CtrlMsg_MIN_SIZE);
+
         default:;
     }
     Assert_failure("invalid event [%d]", ev);
 }
 // Remember to add the event to this function too!
 Assert_compileTime(PFChan_Core__TOO_LOW == 1023);
-Assert_compileTime(PFChan_Core__TOO_HIGH == 1037);
+Assert_compileTime(PFChan_Core__TOO_HIGH == 1039);
 
 static Iface_DEFUN incomingFromCore(struct Message* msg, struct Iface* trickIf)
 {
@@ -191,7 +199,7 @@ static struct Message* pathfinderMsg(enum PFChan_Core ev,
     struct PFChan_Core_Pathfinder* pathfinder = (struct PFChan_Core_Pathfinder*) msg->bytes;
     pathfinder->superiority_be = Endian_hostToBigEndian32(pf->superiority);
     pathfinder->pathfinderId_be = Endian_hostToBigEndian32(pf->pathfinderId);
-    Bits_memcpyConst(pathfinder->userAgent, pf->userAgent, 64);
+    Bits_memcpy(pathfinder->userAgent, pf->userAgent, 64);
     Message_push32(msg, 0xffffffff, NULL);
     Message_push32(msg, ev, NULL);
     return msg;
@@ -211,13 +219,13 @@ static int handleFromPathfinder(enum PFChan_Pathfinder ev,
             Message_pop(msg, &connect, PFChan_Pathfinder_Connect_SIZE, NULL);
             pf->superiority = Endian_bigEndianToHost32(connect.superiority_be);
             pf->version = Endian_bigEndianToHost32(connect.version_be);
-            Bits_memcpyConst(pf->userAgent, connect.userAgent, 64);
+            Bits_memcpy(pf->userAgent, connect.userAgent, 64);
             pf->state = Pathfinder_state_CONNECTED;
 
             struct PFChan_Core_Connect resp;
             resp.version_be = Endian_bigEndianToHost32(Version_CURRENT_PROTOCOL);
             resp.pathfinderId_be = Endian_hostToBigEndian32(pf->pathfinderId);
-            Bits_memcpyConst(resp.publicKey, ee->publicKey, 32);
+            Bits_memcpy(resp.publicKey, ee->publicKey, 32);
             Message_push(msg, &resp, PFChan_Core_Connect_SIZE, NULL);
             Message_push32(msg, PFChan_Core_CONNECT, NULL);
             struct Message* sendMsg = Message_clone(msg, msg->alloc);
@@ -353,7 +361,7 @@ struct EventEmitter* EventEmitter_new(struct Allocator* allocator,
     ee->alloc = alloc;
     ee->trickIf.send = incomingFromCore;
     ee->pathfinders = ArrayList_Pathfinders_new(ee->alloc);
-    Bits_memcpyConst(ee->publicKey, publicKey, 32);
+    Bits_memcpy(ee->publicKey, publicKey, 32);
     Identity_set(ee);
     return &ee->pub;
 }

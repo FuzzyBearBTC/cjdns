@@ -10,10 +10,14 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #ifndef DHTModuleRegistry_H
 #define DHTModuleRegistry_H
+
+#ifdef SUBNODE
+    #error "this file should not be included in subnode"
+#endif
 
 #include "benc/Dict.h"
 #include "dht/DHTMessage.h"
@@ -22,7 +26,7 @@
 #include "io/Writer.h"
 #include "benc/Object.h"
 #include "util/Linker.h"
-Linker_require("dht/DHTModuleRegistry.c")
+Linker_require("dht/DHTModuleRegistry.c");
 
 
 /** State of the registry. */

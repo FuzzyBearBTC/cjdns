@@ -10,7 +10,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #ifndef TAPDevice_H
 #define TAPDevice_H
@@ -18,7 +18,7 @@
 #include "exception/Except.h"
 #include "memory/Allocator.h"
 #include "util/Linker.h"
-Linker_require("interface/tuntap/windows/TAPDevice.c")
+Linker_require("interface/tuntap/windows/TAPDevice.c");
 
 struct TAPDevice
 {

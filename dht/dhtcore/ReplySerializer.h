@@ -10,7 +10,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #ifndef ReplySerializer_H
 #define ReplySerializer_H
@@ -20,7 +20,7 @@
 #include "memory/Allocator.h"
 #include "util/log/Log.h"
 #include "util/Linker.h"
-Linker_require("dht/dhtcore/ReplySerializer.c")
+Linker_require("dht/dhtcore/ReplySerializer.c");
 
 /**
  * For serializing and parsing responses to getPeers and search requests.
@@ -30,5 +30,10 @@ struct Address_List* ReplySerializer_parse(struct Address* fromNode,
                                            struct Log* log,
                                            bool splicePath,
                                            struct Allocator* alloc);
+
+void ReplySerializer_serialize(struct Address_List* addrs,
+                               Dict* out,
+                               struct Address* convertDirectorFor,
+                               struct Allocator* alloc);
 
 #endif

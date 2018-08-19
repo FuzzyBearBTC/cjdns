@@ -10,7 +10,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #ifndef Core_H
 #define Core_H
@@ -22,7 +22,7 @@
 #include "tunnel/IpTunnel.h"
 #include "util/events/FakeNetwork.h"
 #include "util/Linker.h"
-Linker_require("admin/angel/Core.c")
+Linker_require("admin/angel/Core.c");
 
 void Core_initTunnel(String* desiredDeviceName,
                      struct Sockaddr* addr,

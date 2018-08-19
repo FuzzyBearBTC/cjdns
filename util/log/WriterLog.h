@@ -10,7 +10,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #ifndef WriterLog_H
 #define WriterLog_H
@@ -19,7 +19,7 @@
 #include "io/Writer.h"
 #include "util/log/Log.h"
 #include "util/Linker.h"
-Linker_require("util/log/WriterLog.c")
+Linker_require("util/log/WriterLog.c");
 
 struct Log* WriterLog_new(struct Writer* w, struct Allocator* alloc);
 

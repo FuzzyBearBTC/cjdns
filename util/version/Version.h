@@ -10,13 +10,13 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #ifndef Version_H
 #define Version_H
 
 #include "util/Linker.h"
-Linker_require("util/version/Version.c")
+Linker_require("util/version/Version.c");
 
 #include <stdint.h>
 
@@ -362,13 +362,94 @@ Version_COMPAT(16, ([12,13,14,15]))
  * instead is hashed and sent so if the attacker cracks the hash, they'll get the login and will
  * not be able to login to the server.
  */
- Version_COMPAT(17, ([16]))
+Version_COMPAT(17, ([16]))
+
+/**
+ * Version 18:
+ * May 13, 2016
+ *
+ * Rimpasto
+ *
+ * In early 2016 a fundimental flaw was discovered in the way in which the Pathfinder works.
+ * This flaw was named The Drawbridge Bug. When a node starts, it populates it's switch table
+ * in first-come-first-serve order. This is desired behavior, we must occasionally reshuffle
+ * the switch table in order to avoid persistent holes in the table which cause unduly long
+ * switch label directors.
+ * Unfortunately when a node reshuffles it's switch table, this breaks labels which pass through
+ * the node. More unfortunately, it is not always clear that they were broken. For instance:
+ * A->B->C->D->E and C resets and now the same path goes A->B->C->X->Y, the traditional Pathfinder
+ * would think that D->E is broken and might replace it with D->Y, which is an incorrect inference
+ * but will work for making this particular path again - thus positively reinforcing the wrong
+ * inferrence.
+ * Furthermore this problem has caused the NodeStore to make conclusions which are provably
+ * incorrect and this caused assertion failures which caused nodes to reset, causing more and more
+ * reshuffling of switch tables and more and more crashes.
+ * A secondary and more difficult problem is that the paths resolved by the DHT style routing
+ * system are longer than they need to be because as the search wanders looking for a node which
+ * knows the full path, so too does the traffic.
+ * There exist many routing algorithms which are far more efficient and some are believed to scale
+ * smoothly to millions of nodes but the routing table's resistance to poison is specific to cjdns
+ * and other algorithms are mostly highly susceptable. A similar issue to poison-resiliance is that
+ * cjdns nodes need not implement any highly complex behaviors in order to keep the network
+ * functioning, they only answer a few simple questions such as "who do you know whose address is
+ * numerically close to X" and "which of your peers has a path numerically close to Y". Most other
+ * routing algorithms require complex implementations and even a small deviation in behavior on
+ * one node could be disastrous.
+ *
+ * v18 Rimpasto is a rethink of the routing infrastructure. First we accept that the problem is
+ * harder than it was intially thought to be. The old routing infrastructure is now optional and
+ * is replaced by something known as subnode, subnode connects to what are called supernodes.
+ * The supernode code is in a different codebase which is written in nodejs and is called cjdnsnode.
+ * The subnode is mostly located in subnode directory in the project but it makes use of a few parts
+ * of the old dht directory.
+ * The subnode configuration contains a set of supernodes, not anyone can just start up a supernode
+ * and use it to damage the network, subnodes need to trust a supernode in order to use it.
+ * The subnode uses findNode and getPeers requests to find a path to a supernode and then it sends
+ * a findPath query to the supernode in order to answer all of it's routing needs. The supernode
+ * is expected to be able to construct a route label for the optimal path between any one of it's
+ * clients and any other node in the network but how that is done is up to the supernode.
+ * The subnode still answers all of the queries made by the old DHT based routing code but for
+ * findNode queries, the subnode answers the query by requesting the information from the supernode,
+ *
+ * This version allows optional/experimental subnode using SUBNODE=1 in the build.
+ */
+Version_COMPAT(18, ([16,17]))
+
+/**
+ * Version 19:
+ * February 21, 2017
+ *
+ * shibboleth
+ *
+ * This is a mostly cerimonial release, the supernode/subnode infrastructure is still not completely
+ * ready. This release is largely cerimonial, there are no breaking changes to the protocol.
+ * There have been improvements to the CryptoAuth handshake which should make it less likely that
+ * the CryptoAuth session will go into a bad state and the nodes be unable to talk to eachother.
+ */
+Version_COMPAT(19, ([16,17,18]))
+
+/**
+ * Version 20:
+ * March 16, 2017
+ *
+ * baratiner
+ *
+ * In this release the default behavior is to try to solicit supernodes by asking peers then to
+ * attempt to announce to a supernode, however the old messages are still supported and they are
+ * handled by the old nodestore. When something needs to be found, this version will use both the
+ * old DHT and its supernode (if it has one) at the same time.
+ */
+Version_COMPAT(20, ([16,17,18,19]))
 
 /**
  * The current protocol version.
  */
-#define Version_CURRENT_PROTOCOL 17
+#define Version_CURRENT_PROTOCOL 20
 #define Version_16_COMPAT
+#define Version_17_COMPAT
+#define Version_18_COMPAT
+#define Version_19_COMPAT
+#define Version_20_COMPAT
 
 #define Version_MINIMUM_COMPATIBLE 16
 #define Version_DEFAULT_ASSUMPTION 16

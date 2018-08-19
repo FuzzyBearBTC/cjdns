@@ -10,7 +10,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include "util/events/FakeNetwork.h"
 #include "exception/Except.h"
@@ -127,7 +127,7 @@ struct FakeNetwork_UDPIface* FakeNetwork_iface(struct FakeNetwork* net,
         // Check for wrapping.
         Assert_true(fnp->lastPort != 0);
         Assert_true(addrLen == 4);
-        Bits_memcpyConst(addrBytes, ((uint8_t[]){127, 0, 0, 1}), 4);
+        Bits_memcpy(addrBytes, ((uint8_t[]){127, 0, 0, 1}), 4);
     } else if (addrLen == 4 && !Bits_memcmp(addrBytes, "\0\0\0\0", 4)) {
         Assert_failure("Address 0 with port specified is not allowed");
     }

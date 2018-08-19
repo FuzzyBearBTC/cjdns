@@ -10,7 +10,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #ifndef AdminLog_H
 #define AdminLog_H
@@ -21,7 +21,7 @@
 #include "util/log/Log.h"
 #include "util/events/EventBase.h"
 #include "util/Linker.h"
-Linker_require("admin/AdminLog.c")
+Linker_require("admin/AdminLog.c");
 
 struct Log* AdminLog_registerNew(struct Admin* admin,
                                  struct Allocator* alloc,

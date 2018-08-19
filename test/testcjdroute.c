@@ -10,7 +10,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include "util/Assert.h"
 #include "util/events/Time.h"
@@ -20,7 +20,14 @@
 
 #include <stdio.h>
 
-<?js require("./test/testcjdroute.js").generate(file, builder, this.async()); ?>
+#ifdef SUBNODE
+    #define testcjdroute_SUBNODE 1
+#else
+    #define testcjdroute_SUBNODE 0
+#endif
+
+<?js require("./test/testcjdroute.js").generate(
+    file, builder, testcjdroute_SUBNODE, this.async()); ?>
 
 <?js return file.testcjdroute_prototypes; ?>
 

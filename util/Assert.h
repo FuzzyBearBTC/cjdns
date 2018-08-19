@@ -10,14 +10,14 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #ifndef Assert_H
 #define Assert_H
 
 #include "util/Gcc.h"
 #include "util/Linker.h"
-Linker_require("util/Assert.c")
+Linker_require("util/Assert.c");
 
 #define Assert_STRING(x) #x
 

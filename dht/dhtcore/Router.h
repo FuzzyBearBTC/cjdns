@@ -10,16 +10,20 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #ifndef Router_H
 #define Router_H
+
+#ifdef SUBNODE
+    #error "this file should not be included in subnode"
+#endif
 
 #include "dht/Address.h"
 #include "memory/Allocator.h"
 #include "dht/dhtcore/Node.h"
 #include "util/Linker.h"
-Linker_require("dht/dhtcore/Router.c")
+Linker_require("dht/dhtcore/Router.c");
 
 /**
  * This is a facad around the other internals of dht/dhtcore.
@@ -39,9 +43,9 @@ void Router_sendGetPeers(struct Router* r,
 
 struct Node_Two* Router_lookup(struct Router* r, uint8_t targetAddr[16]);
 
-//void Router_brokenLink(struct Router* r, uint64_t path, uint64_t labelAtErrorHop);
+void Router_brokenLink(struct Router* r, uint64_t path, uint64_t labelAtErrorHop);
 
-//void Router_disconnectedPeer(struct Router* r, uint64_t path);
+void Router_disconnectedPeer(struct Router* r, uint64_t path);
 
 struct Node_Link* Router_linkForPath(struct Router* r, uint64_t path);
 

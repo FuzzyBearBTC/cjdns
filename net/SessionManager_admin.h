@@ -10,7 +10,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #ifndef SessionManager_admin_H
 #define SessionManager_admin_H
@@ -19,7 +19,7 @@
 #include "net/SessionManager.h"
 #include "memory/Allocator.h"
 #include "util/Linker.h"
-Linker_require("net/SessionManager_admin.c")
+Linker_require("net/SessionManager_admin.c");
 
 void SessionManager_admin_register(struct SessionManager* sm,
                                    struct Admin* admin,

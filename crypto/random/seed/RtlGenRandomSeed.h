@@ -10,7 +10,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #ifndef RtlGenRandomSeed_H
 #define RtlGenRandomSeed_H
@@ -21,7 +21,7 @@
 #include "util/Linker.h"
 
 #ifdef win32
-    Linker_require("crypto/random/seed/RtlGenRandomSeed.c")
+    Linker_require("crypto/random/seed/RtlGenRandomSeed.c");
     struct RandomSeed* RtlGenRandomSeed_new(struct Allocator* alloc);
     RandomSeedProvider_register(RtlGenRandomSeed_new)
 #endif

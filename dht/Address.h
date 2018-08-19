@@ -10,7 +10,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #ifndef Address_H
 #define Address_H
@@ -18,7 +18,7 @@
 #include "benc/String.h"
 #include "memory/Allocator.h"
 #include "util/Linker.h"
-Linker_require("dht/Address.c")
+Linker_require("dht/Address.c");
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -77,6 +77,34 @@ uint32_t Address_prefixForIp6(uint8_t ip6[16]);
 
 uint32_t Address_prefixForSearchTarget(const uint8_t searchTarget[16]);
 
+/**
+ * Address_serialize and Address_parse use the following format:
+ *
+ *                       1               2               3
+ *       0 1 2 3 4 5 6 7 0 1 2 3 4 5 6 7 0 1 2 3 4 5 6 7 0 1 2 3 4 5 6 7
+ *      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *    0 |                                                               |
+ *      +                                                               +
+ *    4 |                                                               |
+ *      +                                                               +
+ *    8 |                                                               |
+ *      +                                                               +
+ *   12 |                                                               |
+ *      +                          Public Key                           +
+ *   16 |                                                               |
+ *      +                                                               +
+ *   20 |                                                               |
+ *      +                                                               +
+ *   24 |                                                               |
+ *      +                                                               +
+ *   28 |                                                               |
+ *      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *   32 |                                                               |
+ *      +                          Route Label                          +
+ *   36 |                                                               |
+ *      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ */
+
 void Address_serialize(uint8_t output[Address_SERIALIZED_SIZE], const struct Address* addr);
 
 void Address_parse(struct Address* addr, const uint8_t input[Address_SERIALIZED_SIZE]);
@@ -101,6 +129,8 @@ void Address_print(uint8_t output[60], struct Address* addr);
 String* Address_toString(struct Address* addr, struct Allocator* alloc);
 
 struct Address* Address_fromString(String* str, struct Allocator* alloc);
+
+struct Address* Address_clone(struct Address* orig, struct Allocator* alloc);
 
 int Address_xorcmp(uint32_t target,
                    uint32_t negativeIfCloser,

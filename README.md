@@ -1,7 +1,13 @@
 # cjdns
 
-Русская версия Readme: [README_RU.md](README_RU.md)
-Hrvatski Readme: [README_HR.md](README_HR.md)
+[Русская версия](README_RU.md)
+[Hrvatski](README_HR.md)
+[Svenska](README_SV.md)
+[Ελληνικά](README_GR.md)
+[Deutsch](README_DE.md)
+[繁體中文](README_ZHT.md)
+[Español](README_ES.md)
+[Français](README_FR.md)
 
 #### *Networking Reinvented*
 
@@ -10,8 +16,11 @@ address allocation and a distributed hash table for routing. This provides
 near-zero-configuration networking, and prevents many of the security and
 scalability issues that plague existing networks.
 
-[![Build Status](https://travis-ci.org/cjdelisle/cjdns.svg?branch=master)](https://travis-ci.org/cjdelisle/cjdns)
+[![Build Status](https://api.travis-ci.org/cjdelisle/cjdns.svg?branch=master)](https://travis-ci.org/cjdelisle/cjdns)
+[![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/387/badge)](https://bestpractices.coreinfrastructure.org/projects/387)
 [![tip for next commit](https://tip4commit.com/projects/941.svg)](https://tip4commit.com/github/cjdelisle/cjdns)
+[![irc](https://img.shields.io/badge/irc%20chat-%23cjdns-blue.svg)](https://kiwiirc.com/client/irc.efnet.org/?nick=visitor|?#cjdns)
+![License](https://img.shields.io/github/license/cjdelisle/cjdns.svg)
 
 ## Testimonials
 
@@ -26,54 +35,24 @@ scalability issues that plague existing networks.
     00:36 < tester> i value speed over anonymity any day
 
     <DuoNoxSol> it's notably more reliable than the normal internet
-    <DuoNoxSol> even though it really really shouldn't be
-    <DuoNoxSol> seeing as the connections are largely over the normal internet
 
+    09:46 < Kubuxu> I so love cjdns code base
 
-## How close is it to complete?
+    <whyrusleeping> my internet is way better now.
+    <whyrusleeping> thanks
+    <whyrusleeping> i'm really upset and sad that its better
+    <whyrusleeping> but also quite happy
 
-[Hyperboria][] is the largest cjdns network, with hundreds of active nodes
-around the world.
+    21:01 <@grewalsat> this is amazing. with my workpalce speedtest.net results I get around 6+mb speed, and with my cjdns-gate as vpn network I'm getting like 11-15mb download speed in speedtest.net
+    21:01 <@grewalsat> :P
+    21:01 <@grewalsat> plus, access anything! :D
 
-Cjdns has been tested on x86, amd64, ARMv5, ARMv7, MIPS, and PowerPC.
-It's [continually tested][buildbots] on Linux, FreeBSD, OS X, Windows and Illumos
-systems.
-
-The protocols and algorithms are experimental and subject to change.
-To minimize the harm to the network, please update your cjdns nodes often.
-
-
-### You can help!
-
-We are in need of some buildbots on more obscure systems and architectures.
-If you would like to donate one, you could mail it, or you could administer
-it and provide remote shell access. Please email `buildbot@seattlemesh.net`
-if you'd like to run a buildbot. Note that it is not a general support inbox,
-other questions should be directed toward IRC.
-
-
-
-## How does routing work?
-
-In a cjdns network, a packet goes to a router and the router labels the packet
-with directions to the router best able to handle it. That is, a router which
-is physically nearby and has an address numerically close to the destination
-address of the packet. The directions are added to the packet to allow it to go
-through a number of routers with minimal handling, *a verifiable form of source
-routing*. They just read the label and bounce the packet wherever the next bits
-in the label tell them to. Routers have a responsibility to "keep in touch"
-with other routers that are physically close by and numerically near to their
-address.
-
-The router engine is a modified implementation of the [Kademlia][] distributed
-hash table.
-
+    <davidar> Yeah, I have to admit I sort of avoided hypeirc because of stuff like that
 
 ## Community
 
-* irc://irc.efnet.org/#cjdns ([web client][IRC Web])
-* [Hyperboria][]
-* [Project Meshnet][]
+* [irc://irc.efnet.org/#cjdns][IRC Web]
+* [Hyperboria][] the largest cjdns network, as of October 2015 there are 2100 nodes.
 * [/r/darknetplan][]
 * [#cjdns on Twitter][]
 
@@ -89,10 +68,6 @@ Advanced configuration:
 * [Setup a cjdns NAT gateway for your LAN](doc/nat-gateway.md)
 * [Install cjdns on OpenIndiana](doc/open-indiana.md)
 
-### License
-
-[Available here](LICENSE)
-
 Thank you for your time and interest,
 
 The cjdns developers.
@@ -101,63 +76,58 @@ The cjdns developers.
 
 ## How to install cjdns
 
-These instructions are for Debian-based Linux distributions and OS X. They should be
+These instructions are for Debian-based Linux distributions and macOS. They should be
 informative enough for use on other distributions - just don't expect them to
-work verbatim.
+work verbatim. If you want to know what [operating system's base is go here](https://upload.wikimedia.org/wikipedia/commons/1/1b/Linux_Distribution_Timeline.svg).
 
 ### 0. Install dependencies
 
-On both platforms, installing [Node.js](http://nodejs.org/), although preferable,
+On both platforms, installing [Node.js](https://nodejs.org/), although preferable,
 is not strictly necessary. If Node.js is unavailable or an unacceptable version,
 it will be downloaded and installed in the source tree.
 
 #### Debian-based distro:
 
-    sudo apt-get install nodejs git build-essential
+    sudo apt-get install nodejs git build-essential python2.7
 
 #### Fedora 22+ based distro:
 
-    sudo dnf install install nodejs git
+    sudo dnf install nodejs git
     sudo dnf install @development-tools
-    
+
 #### RHEL based distro (adds the EPEL repo):
 
     sudo yum localinstall https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
-    sudo yum install install nodejs git
+    sudo yum install nodejs git
     sudo yum install @development-tools
 
-#### OS X:
+#### Building from package:
 
-On OS X, you must install the Command Line Developer Tools. If
-you already have a recent version of Xcode (>= OS X 10.9 and >= Xcode 5.0.1), run the
-following command:
+    sudo yum localinstall https://kojipkgs.fedoraproject.org//packages/cjdns/17.4/4.el6/src/cjdns-17.4-4.el6.src.rpm
 
-    xcode-select --install
+If you are on a laptop and suspend or hibernate it, cjdroute will take a few
+minutes to make coffee and figure out what just happened when it wakes up.  You
+can speed this up dramatically with:
 
-If Xcode is not installed, you can either install it through the App
-Store and run the command above, or make a free Apple Developer account here:
-[https://developer.apple.com/downloads/index.action](https://developer.apple.com/downloads/index.action).
-Then sign in, search for Command Line Tools, and install the latest package
-compatible with your version of OS X. If you encounter issues, there is a
-thorough [stackoverflow post](http://stackoverflow.com/a/9329325) on installing
-the Command Line Tools.
+    systemctl enable cjdns-resume
 
-You must also install git and Node.js. There are a few options. If you use [Homebrew](http://brew.sh/):
+The resume service restarts cjdns when the system wakes up from sleep.
 
-    brew install git nodejs
+#### Gentoo
 
-If you use [Macports](https://www.macports.org/):
+    emerge --ask nodejs sys-devel/gcc dev-lang/python:3.4 dev-vcs/git
 
-    sudo port install git-core nodejs
+#### macOS:
 
-Or if you use neither and would like to install the binaries from their websites:
-doc
-- Node.js: [http://nodejs.org/download/](http://nodejs.org/download/)
-- git: [http://git-scm.com/download](http://git-scm.com/download)
+Install with [Homebrew](https://brew.sh/):
+
+    brew install cjdns
+
+Install with [MacPorts](https://www.macports.org/):
+
+    sudo port install cjdns
 
 #### OpenBSD:
-
-Sadly, OpenBSD is a bit experimental right now.
 
     pkg_add git node gcc gmake bash
 
@@ -165,19 +135,116 @@ Select version gcc-4.8.1p2 or more recent.
 
 #### FreeBSD:
 
-The compiler expects GCC version 4.7, please install it from ports first.
+Everything you need is available prebuild in FreeBSD' ports.
 
-    portsnap fetch extract
-    cd /usr/ports/lang/gcc47/ && make config && make install clean
+    pkg install gmake node
 
-### 1. Retrieve cjdns from GitHub
+#### Arch:
+
+You can install cjdns by running
+
+    pacman -S cjdns
+
+If you need to build from source, everything you need can be installed like this
+
+    pacman -S nodejs git base-devel
+
+Alternatively, you may like to install via AUR from the package, `cjdns-git`.
+After Installation, The configuration file is located at `/etc/cjdroute.conf`.
+To start the service `cjdns.service`, do:
+
+    systemctl start cjdns
+
+To stop it:
+
+    systemctl stop cjdns
+
+#### Gentoo:
+
+cjdns is not yet in the main Gentoo repository, so you will have to use an overlay.
+The easiest way is to use Layman but you can do it by hand, too.
+
+##### Layman:
+
+First, you need to install layman.
+
+    emerge layman
+
+If layman is installed correctly, you can add the overlay
+
+    layman -f
+    layman -a weuxel
+
+For future update of the overlay use
+
+    layman -S
+
+Now you can install cjdns
+
+    emerge cjdns
+
+##### By hand:
+
+You will have to clone the overlay repository
+
+    cd /opt
+    git clone https://github.com/Weuxel/portage-weuxel.git
+
+Now tell portage to use this repo
+
+    cd /etc/portage/repos.conf/
+
+Create a file `portage-weuxel.conf` containing
+
+    [weuxel]
+    location = /opt/portage-weuxel
+    masters = gentoo
+    auto-sync = yes
+
+Now sync
+
+    emerge --sync
+
+And install cjdns
+
+    emerge cjdns
+
+#### Automatic crash detection and restart
+
+Copy the the openrc init script from `contrib/openrc` to `/etc/init.d/` and modify the `CONFFILE` and `command` parameter to your needs.
+Then start cjdns by issuing
+
+    /etc/init.d/cjdns start
+
+Configure the init system to autostart cjdns
+
+    rc-update add cjdns default
+
+Copy the service_restart script `contrib/gentoo/service_restart.sh` to any convenient directory on
+your system and modify the eMail address. If you do not wish to be notified, comment out the whole line.
+Now add a crontab entry like this
+
+    # Restart crashed Services
+    * * * * *       root	/path/to/script/service_restart.sh
+
+#### Solus:
+
+Dependencies:
+
+    sudo eopkg install nodejs git build-essential system.devel python gcc binutils kernal-headers xorg-server-devel
+
+Then Follow the steps below:
+
+*Sorry for so many steps. A package is being worked on currently*
+
+##### 1. Retrieve cjdns from GitHub
 
 Clone the repository from GitHub and change to the source directory:
 
     git clone https://github.com/cjdelisle/cjdns.git cjdns
     cd cjdns
 
-### 2. Build
+##### 2. Build
 
     ./do
 
@@ -194,7 +261,9 @@ Run cjdroute without options for HELP:
 
 ### 0. Make sure you've got the stuff.
 
-    cat /dev/net/tun
+If you're on macOS, don't worry about this step.
+
+    LANG=C cat /dev/net/tun
 
 If it says: `cat: /dev/net/tun: File descriptor in bad state` Good!
 
@@ -209,19 +278,21 @@ Then `cat /dev/net/tun` again.
 If it says: `cat: /dev/net/tun: Permission denied` You're probably using a VPS
 based on the OpenVZ virtualization platform. Ask your provider to enable the
 TUN/TAP device - this is standard protocol so they should know exactly what you
-need. If you're on OS X, don't worry about this step.
+need.
 
 
 ### 1. Generate a new configuration file
 
     ./cjdroute --genconf >> cjdroute.conf
 
-**Protect your conf file!** A lost conf file means you lost your password and
+**Protect your conf file!**
+
+A lost conf file means you lost your password and
 connections and anyone who connected to you will no longer be able to connect.
 A compromised conf file means that other people can impersonate you on the
 network.
 
-To set generate a conf file with permissions set so that only your user can
+To generate a conf file with permissions set so that only your user can
 read it and write to it:
 
     (umask 077 && ./cjdroute --genconf > cjdroute.conf)
@@ -271,13 +342,15 @@ A conf file with multiple friend-nodes, setup OUTbound, should look like:
     //friend_1 (IPv4: 0.1.2.3; IPv6 fcaa:5bac:66e4:713:cb00:e446:c317:fc39)
     "0.1.2.3:45678":
     {
+        "login": "k.alexander"
         "password": "thisIsNotARealConnection_1",
         "publicKey": "thisIsJustForAnExampleDoNotUseThisInYourConfFile_1.k"
-    }
+    },
 
     //friend_2 (IPv4: 5.1.2.3; IPv6 fcbb:5bac:66e4:713:cb00:e446:c317:fc39)
     "5.1.2.3:5678":
     {
+        "login": "k.alexander"
         "password": "thisIsNotARealConnection_2",
         "publicKey": "thisIsJustForAnExampleDoNotUseThisInYourConfFile_2.k"
     }
@@ -291,19 +364,20 @@ following JSON syntax.
 **To allow your friend to initiate the connection INbound**
 
 In your conf file, you will see:
+
 ``` javascript
 "authorizedPasswords":
 [
     // A unique string which is known to the client and server.
-    {"password": "thisisauniquestring_001"}
+    {"password": "password001", "login": "default-login"}
 
     // More passwords should look like this.
-    // {"password": "thisisauniquestring_002"}
-    // {"password": "thisisauniquestring_003"}
-    // {"password": "thisisauniquestring_004"}
+    // {"password": "password002", "login": "my-second-peer"}
+    // {"password": "password003", "login": "my-third-peer}
+    // {"password": "password004", "login": "my-fourth-peer"}
     ...
 
-    // "your.external.ip.goes.here:45678":{"password": "thisisauniquestring_001","publicKey":thisisauniqueKEY_001.k"}
+    // "your.external.ip.goes.here:45678":{"login": "default-login", "password": "password001","publicKey":thisisauniqueKEY_001.k"}
 
 ],
 ```
@@ -313,13 +387,13 @@ A conf file with multiple friend-nodes, setup INbound, should look like:
 "authorizedPasswords":
 [
     // A unique string which is known to the client and server.
-    {"password": "thisisauniquestring_001"}
+    {"password": "thisisauniquestring_001", "user": "k.alexander"}
 
     // More passwords should look like this.
-    //friend_3 (IPv4: 0.1.2.3; IPv6 fcaa:5bac:66e4:713:cb00:e446:c317:fc39)
-{"password": "thisisauniquestring_002"}
-    //friend_4 (IPv4: 5.1.2.3; IPv6 fcbb:5bac:66e4:713:cb00:e446:c317:fc39)
-{"password": "thisisauniquestring_003"}
+    //William Jevons (IPv4: 0.1.2.3; IPv6 fcaa:5bac:66e4:713:cb00:e446:c317:fc39)
+    {"password": "thisisauniquestring_002", "user": "William Jevons"}
+    //Marilyn Patel (IPv4: 5.1.2.3; IPv6 fcbb:5bac:66e4:713:cb00:e446:c317:fc39)
+    {"password": "thisisauniquestring_003", "user": "Marilyn Patel"}
     // {"password": "thisisauniquestring_004"}
     ...
 
@@ -328,7 +402,7 @@ A conf file with multiple friend-nodes, setup INbound, should look like:
 ```
 
 
-You need to give friend_3 (who is making the INbound connection) the following 4 items:
+You need to give William Jevons (who is making the INbound connection) the following 4 items:
 
 1. Your external IPv4
 2. The port found in your conf file here:
@@ -336,15 +410,23 @@ You need to give friend_3 (who is making the INbound connection) the following 4
     `// Bind to this port.
     "bind": "0.0.0.0:yourportnumberishere",`
 
-3. Their unique password that you uncommented or created: "password": "thisisauniquestring_002"
-4. Your public key: "publicKey":thisisauniqueKEY_001.k"
+3. Their unique password that you uncommented or created: `"password": "thisisauniquestring_002"`
+4. Your public key: `"publicKey": "thisisauniqueKEY_001.k"`
+5. His username: "William Jevons"
 
+His login credentials will look something like this (with your IPv4 and port):
 
+```javascript
+"1.2.3.4:56789": {
+    "login": "William Jevons",
+    "password": "thisisauniquestring_002",
+    "publicKey": "thisIsJustForAnExampleDoNotUseThisInYourConfFile_1.k"
+}
+```
 
 Please note that you and your friend can *initiate* a
 connection either outbound (from YOU --> FRIEND) or inbound (from FRIEND --> YOU)
 but traffic flows both ways once the connection is established.
-
 
 See [doc/configure.md](doc/configure.md) for more details on configuration,
 including how to peer with other cjdns nodes over ethernet and wifi.
@@ -355,7 +437,7 @@ including how to peer with other cjdns nodes over ethernet and wifi.
 Once your node is running, you're now a newly minted IPv6 host. Your operating
 system may automatically reconfigure network services to use this new address.
 If this is not what you intend, you should check to see that you are not
-offering more services then you intended to. ;)
+offering more services than you intended to. ;)
 
 See [doc/network-services.md](doc/network-services.md) for instructions.
 
@@ -375,7 +457,9 @@ To stop cjdns:
 If you are having problems use `killall cjdroute` to return to sanity. Use
 `pgrep cjdroute` or `top` to see if it running.
 
-**Note:** this starts cjdns as the root user so it can configure your system
+**NOTE!**
+
+This starts cjdns as the root user so it can configure your system
 without concern for permissions. To start cjdns as a non-root user, see
 [doc/non-root-user.md](doc/non-root-user.md).
 
@@ -390,26 +474,47 @@ stay on [IRC](#community) so that people can reach you.
 
 ## Admin interface
 
-When cjdnroute is up and running, the admin interface will be available at
+When cjdroute is up and running, the admin interface will be available at
 `udp://localhost:11234` (this can be changed in the `cjdroute.conf`
-configuration file). See [admin/README.md](admin/README.md) for more
+configuration file). See [doc/admin-api.md](doc/admin-api.md) for more
 information about the admin interface. There are several tools in `contrib/`
 that can interact with it.
 
 You can access the admin API with:
 
-* the **Python library**; see
-  [contrib/python/README.md](contrib/python/README.md).
-* the **Perl library**, maintained by Mikey; see
-  [contrib/perl/CJDNS/README](contrib/perl/CJDNS/README).
+* the **Python library**; see [here](contrib/python/README.md).
+* the **Perl library**, maintained by Mikey; see [here](contrib/perl/CJDNS/README).
 
+
+## Reporting issues
+1. Don't report in this repo, please instead report it at https://github.com/hyperboria/bugs/issues
+2. Get on IRC and talk to somebody
+3. What will happen is either
+ * Someone feels like fixing it
+ * You feel like fixing it
+ * Nobody cares about it and it will be forgotten for a while and maybe someone will hit it later
+ and fix it or else it will get wiped away in a refactoring
+ * Nobody can fix it at the moment but it is considered worth remembering because it has great
+ significance to the way the code is developed, in this case it needs to be explained in technical
+ terms by someone with strong familiarity with the code. They will make a pull request to the
+ docs/bugs directory.
+
+### Security
+Security issues should be reported on IRC the same as other bugs. We don't have a closed
+group of people with special knowledge so that means the default security reporting method is
+full disclosure.
+
+See: [security_specification.md](https://github.com/cjdelisle/cjdns/blob/master/doc/security_specification.md) to see if a
+possible security issue is really a security issue.
+
+That time of year again... Time for some open source Projects!
+[![Hacktoberfest](https://img.shields.io/badge/Open%20Source-Hacktoberfest-orange.svg)](https://hacktoberfest.digitalocean.com/)
 
 [IRC Web]: http://chat.efnet.org/irc.cgi?chan=%23cjdns
-[Hyperboria]: http://hyperboria.net
-[Project Meshnet]: https://projectmeshnet.org
-[/r/darknetplan]: http://www.reddit.com/r/darknetplan
+[Hyperboria]: https://hyperboria.net
+[/r/darknetplan]: https://www.reddit.com/r/darknetplan
 [#cjdns on Twitter]: https://twitter.com/hashtag/cjdns
-[Hyperboria Map]: http://www.fc00.org/
+[Hyperboria Map]: https://www.fc00.org/
 [Buildbots]: https://buildbot.meshwith.me/cjdns/waterfall
 
 [Cjdns on Wikipedia]: https://en.wikipedia.org/wiki/Cjdns
@@ -418,5 +523,5 @@ You can access the admin API with:
 [Kademlia]: https://en.wikipedia.org/wiki/Kademlia
 
 [Tor]: https://www.torproject.org
-[I2P]: http://www.i2p2.de
+[I2P]: https://geti2p.net/en/
 [Freenet]: https://freenetproject.org

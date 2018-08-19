@@ -10,7 +10,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #ifndef BsdKernArndSysctlRandomSeed_H
 #define BsdKernArndSysctlRandomSeed_H
@@ -20,8 +20,8 @@
 #include "memory/Allocator.h"
 #include "util/Linker.h"
 
-#if defined(freebsd) || defined(openbsd)
-    Linker_require("crypto/random/seed/BsdKernArndSysctlRandomSeed.c")
+#if defined(freebsd)
+    Linker_require("crypto/random/seed/BsdKernArndSysctlRandomSeed.c");
     struct RandomSeed* BsdKernArndSysctlRandomSeed_new(struct Allocator* alloc);
     RandomSeedProvider_register(BsdKernArndSysctlRandomSeed_new)
 #endif

@@ -10,7 +10,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #ifndef ArrayWriter_H
 #define ArrayWriter_H
@@ -18,7 +18,7 @@
 #include "io/Writer.h"
 #include "memory/Allocator.h"
 #include "util/Linker.h"
-Linker_require("io/ArrayWriter.c")
+Linker_require("io/ArrayWriter.c");
 
 /**
  * Create a new Writer which writes to a user supplied buffer.

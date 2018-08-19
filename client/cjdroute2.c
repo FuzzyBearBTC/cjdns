@@ -10,12 +10,13 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include "client/AdminClient.h"
 #include "admin/angel/Core.h"
 #include "admin/angel/InterfaceWaiter.h"
 #include "client/Configurator.h"
+#include "crypto/Key.h"
 #include "benc/Dict.h"
 #include "benc/Int.h"
 #include "benc/List.h"
@@ -34,10 +35,12 @@
 #include "io/Writer.h"
 #include "memory/Allocator.h"
 #include "memory/MallocAllocator.h"
+#include "util/AddrTools.h"
 #include "util/ArchInfo.h"
 #include "util/Assert.h"
 #include "util/Base32.h"
 #include "util/CString.h"
+#include "util/Defined.h"
 #include "util/events/UDPAddrIface.h"
 #include "util/events/Time.h"
 #include "util/events/EventBase.h"
@@ -51,34 +54,11 @@
 #include "util/version/Version.h"
 #include "net/Benchmark.h"
 
-#include "crypto_scalarmult_curve25519.h"
-
 #include <stdint.h>
 #include <stdio.h>
 #include <unistd.h>
 
 #define DEFAULT_TUN_DEV "tun0"
-
-static int genAddress(uint8_t addressOut[40],
-                      uint8_t privateKeyHexOut[65],
-                      uint8_t publicKeyBase32Out[53],
-                      struct Random* rand)
-{
-    struct Address address;
-    uint8_t privateKey[32];
-
-    for (;;) {
-        Random_bytes(rand, privateKey, 32);
-        crypto_scalarmult_curve25519_base(address.key, privateKey);
-        // Brute force for keys until one matches FC00:/8
-        if (AddressCalc_addressForPublicKey(address.ip6.bytes, address.key)) {
-            Hex_encode(privateKeyHexOut, 65, privateKey, 32);
-            Base32_encode(publicKeyBase32Out, 53, address.key, 32);
-            Address_printShortIp(addressOut, &address);
-            return 0;
-        }
-    }
-}
 
 static int genconf(struct Random* rand, bool eth)
 {
@@ -96,10 +76,16 @@ static int genconf(struct Random* rand, bool eth)
         port = Random_uint16(rand);
     }
 
+    uint8_t publicKey[32];
     uint8_t publicKeyBase32[53];
+    uint8_t ip[16];
     uint8_t address[40];
+    uint8_t privateKey[32];
     uint8_t privateKeyHex[65];
-    genAddress(address, privateKeyHex, publicKeyBase32, rand);
+    Key_gen(ip, publicKey, privateKey, rand);
+    Base32_encode(publicKeyBase32, 53, publicKey, 32);
+    Hex_encode(privateKeyHex, 65, privateKey, 32);
+    AddrTools_printIp(address, ip);
 
     printf("{\n");
     printf("    // Private key:\n"
@@ -176,6 +162,8 @@ static int genconf(struct Random* rand, bool eth)
            "            {\n"
            "                // Bind to this port.\n"
            "                \"bind\": \"0.0.0.0:%u\",\n", port);
+    printf("                // Set the DSCP value for Qos. Default is 0.\n"
+           "                // \"dscp\": 46,\n");
     printf("\n"
            "                // Nodes to connect to (IPv4 only).\n"
            "                \"connectTo\":\n"
@@ -195,6 +183,8 @@ static int genconf(struct Random* rand, bool eth)
            "            {\n"
            "                // Bind to this port.\n"
            "                \"bind\": \"[::]:%u\",\n", port);
+    printf("                // Set the DSCP value for Qos. Default is 0.\n"
+           "                // \"dscp\": 46,\n");
     printf("\n"
            "                // Nodes to connect to (IPv6 only).\n"
            "                \"connectTo\":\n"
@@ -202,14 +192,14 @@ static int genconf(struct Random* rand, bool eth)
            "                    // Add connection credentials here to join the network\n"
            "                    // Ask somebody who is already connected.\n"
            "                }\n"
-           "            }\n"
-           "        ]\n");
+           "            }\n");
 #ifdef HAS_ETH_INTERFACE
-    printf("\n");
+    printf("        ],\n");
     if (!eth) {
         printf("        /*\n");
     }
-    printf("        \"ETHInterface\":\n"
+    printf("        // The interface which allows peering using layer-2 ethernet frames\n"
+           "        \"ETHInterface\":\n"
            "        [\n"
            "            // Alternatively bind to just one device and either beacon and/or\n"
            "            // connect to a specified MAC address\n"
@@ -238,7 +228,7 @@ static int genconf(struct Random* rand, bool eth)
            "                // Note: does not work with \"all\" pseudo-device-name\n"
            "                \"connectTo\":\n"
            "                {\n"
-           "                    // Credentials for connecting look similar to UDP credientials\n"
+           "                    // Credentials for connecting look similar to UDP credentials\n"
            "                    // except they begin with the mac address, for example:\n"
            "                    // \"01:02:03:04:05:06\":{\"password\":\"a\",\"publicKey\":\"b\"}\n"
            "                }\n"
@@ -248,25 +238,36 @@ static int genconf(struct Random* rand, bool eth)
         printf("        */\n");
     }
     printf("\n");
+#else
+    printf("        ]\n");
 #endif
     printf("    },\n"
            "\n"
            "    // Configuration for the router.\n"
            "    \"router\":\n"
            "    {\n"
+           "        // supernodes, if none are specified they'll be taken from your peers\n"
+           "        \"supernodes\": [\n"
+           "            //\"6743gf5tw80ExampleExampleExampleExamplevlyb23zfnuzv0.k\",\n"
+           "        ],\n"
+           "\n"
            "        // The interface which is used for connecting to the cjdns network.\n"
            "        \"interface\":\n"
            "        {\n"
            "            // The type of interface (only TUNInterface is supported for now)\n"
            "            \"type\": \"TUNInterface\"\n"
+           "            // The type of tunfd (only \"android\" for now)\n"
+           "            // If \"android\" here, the tunDevice should be used as the pipe path\n"
+           "            // to transfer the tun file description.\n"
+           "            // \"tunfd\" : \"android\"\n");
 #ifndef __APPLE__
-           "\n"
+    printf("\n"
            "            // The name of a persistent TUN device to use.\n"
            "            // This for starting cjdroute as its own user.\n"
            "            // *MOST USERS DON'T NEED THIS*\n"
-           "            //\"tunDevice\": \"" DEFAULT_TUN_DEV "\"\n"
+           "            //\"tunDevice\": \"" DEFAULT_TUN_DEV "\"\n");
 #endif
-           "        },\n"
+    printf("        },\n"
            "\n"
            "        // System for tunneling IPv4 and ICANN IPv6 through cjdns.\n"
            "        // This is using the cjdns switch layer as a VPN carrier.\n"
@@ -275,25 +276,36 @@ static int genconf(struct Random* rand, bool eth)
            "            // Nodes allowed to connect to us.\n"
            "            // When a node with the given public key connects, give them the\n"
            "            // ip4 and/or ip6 addresses listed.\n"
-           "            \"allowedConnections\":\n"
-           "            [\n"
+           "            \"allowedConnections\":\n");
+    printf("            [\n"
            "                // Give the client an address on 192.168.1.0/24, and an address\n"
            "                // it thinks has all of IPv6 behind it.\n"
+           "                // ip4Prefix is the set of addresses which are routable from the tun\n"
+           "                // for example, if you're advertizing a VPN into a company network\n"
+           "                // which exists in 10.123.45.0/24 space, ip4Prefix should be 24\n"
+           "                // default is 32 for ipv4 and 128 for ipv6\n"
+           "                // so by default it will not install a route\n"
+           "                // ip4Alloc is the block of addresses which are allocated to the\n"
+           "                // for example if you want to issue 4 addresses to the client, those\n"
+           "                // being 192.168.123.0 to 192.168.123.3, you would set this to 30\n"
+           "                // default is 32 for ipv4 and 128 for ipv6 (1 address)\n"
            "                // {\n"
            "                //     \"publicKey\": "
            "\"f64hfl7c4uxt6krmhPutTheRealAddressOfANodeHere7kfm5m0.k\",\n"
            "                //     \"ip4Address\": \"192.168.1.24\",\n"
-           "                //     \"ip4Prefix\": 24,\n"
+           "                //     \"ip4Prefix\": 0,\n"
+           "                //     \"ip4Alloc\": 32,\n"
            "                //     \"ip6Address\": \"2001:123:ab::10\",\n"
            "                //     \"ip6Prefix\": 0\n"
+           "                //     \"ip6Alloc\": 64,\n"
            "                // },\n"
            "\n"
-           "                // It's ok to only specify one address.\n"
+           "                // It's ok to only specify one address and prefix/alloc are optional.\n"
            "                // {\n"
            "                //     \"publicKey\": "
            "\"ydq8csdk8p8ThisIsJustAnExampleAddresstxuyqdf27hvn2z0.k\",\n"
            "                //     \"ip4Address\": \"192.168.1.25\",\n"
-           "                //     \"ip4Prefix\": 24\n"
+           "                //     \"ip4Prefix\": 0,\n"
            "                // }\n"
            "            ],\n"
            "\n"
@@ -327,10 +339,16 @@ static int genconf(struct Random* rand, bool eth)
            "        // Chroot changes the filesystem root directory which cjdns sees, blocking it\n"
            "        // from accessing files outside of the chroot sandbox, if the user does not\n"
            "        // have permission to use chroot(), this will fail quietly.\n"
-           "        // Use { \"chroot\": 0 } to disable.\n"
-           "        // Default: enabled (using \"/var/run\")\n"
-           "        { \"chroot\": \"/var/run/\" },\n"
-           "\n"
+           "        // Use { \"chroot\": 0 } to disable.\n");
+          if (Defined(android)) {
+    printf("        // Default: disabled\n"
+           "        { \"chroot\": 0 },\n");
+          }
+          else {
+    printf("        // Default: enabled (using \"/var/run\")\n"
+           "        { \"chroot\": \"/var/run/\" },\n");
+          }
+    printf("\n"
            "        // Nofiles is a deprecated security feature which prevents cjdns from opening\n"
            "        // any files at all, using this will block setting of IP addresses and\n"
            "        // hot-adding ETHInterface devices but for users who do not need this, it\n"
@@ -346,10 +364,16 @@ static int genconf(struct Random* rand, bool eth)
            "        // Seccomp is the most advanced sandboxing feature in cjdns, it uses\n"
            "        // SECCOMP_BPF to filter the system calls which cjdns is able to make on a\n"
            "        // linux system, strictly limiting it's access to the outside world\n"
-           "        // This will fail quietly on any non-linux system\n"
-           "        // Default: enabled\n"
-           "        { \"seccomp\": 1 },\n"
-           "\n"
+           "        // This will fail quietly on any non-linux system\n");
+          if (Defined(android)) {
+    printf("        // Default: disabled\n"
+           "        { \"seccomp\": 0 },\n");
+          }
+          else {
+    printf("        // Default: enabled\n"
+           "        { \"seccomp\": 1 },\n");
+          }
+    printf("\n"
            "        // The client sets up the core using a sequence of RPC calls, the responses\n"
            "        // to these calls are verified but in the event that the client crashes\n"
            "        // setup of the core completes, it could leave the core in an insecure state\n"
@@ -370,12 +394,18 @@ static int genconf(struct Random* rand, bool eth)
            "\n"
            "    // If set to non-zero, cjdns will not fork to the background.\n"
            "    // Recommended for use in conjunction with \"logTo\":\"stdout\".\n");
-          if (Defined(win32)) {
-    printf("    \"noBackground\":1,\n");
-          }
-          else {
-    printf("    \"noBackground\":0,\n");
-          }
+           // ATTENTION: there is no trailing comma here because this is the LAST ENTRY
+           //            the next one ("pipe") is commented out. If you add something below
+           //            you must properly add the trailing comma otherwise ansuz will hunt
+           //            you and and make you pay.
+    printf("    \"noBackground\":%d\n", Defined(win32) ? 1 : 0);
+    printf("\n"
+           "    // Pipe file will store in this path, recommended value: /tmp (for unix),\n"
+           "    // \\\\.\\pipe (for windows) \n"
+           "    // /data/local/tmp (for rooted android) \n"
+           "    // /data/data/AppName (for non-root android)\n"
+           "    // This only needs to be specified if cjdroute's guess is incorrect\n");
+    printf("    // \"pipe\":\"%s\"\n", Pipe_PATH);
     printf("}\n");
 
     return 0;
@@ -402,7 +432,7 @@ static int usage(struct Allocator* alloc, char* appName)
            "\n"
            "Step 2:\n"
            "  Find somebody to connect to.\n"
-           "  Check out the IRC channel or http://hyperboria.net/\n"
+           "  Check out the IRC channel or https://hyperboria.net/\n"
            "  for information about how to meet new people and make connect to them.\n"
            "  Read more here: https://github.com/cjdelisle/cjdns/#2-find-a-friend\n"
            "\n"
@@ -505,18 +535,12 @@ int main(int argc, char** argv)
     struct Random* rand = Random_new(allocator, NULL, eh);
     struct EventBase* eventBase = EventBase_new(allocator);
 
-    if (argc >= 2) {
+    if (argc == 2) {
         // one argument
         if ((CString_strcmp(argv[1], "--help") == 0) || (CString_strcmp(argv[1], "-h") == 0)) {
             return usage(allocator, argv[0]);
         } else if (CString_strcmp(argv[1], "--genconf") == 0) {
-            bool eth = 1;
-            for (int i = 1; i < argc; i++) {
-                if (!CString_strcmp(argv[i], "--no-eth")) {
-                    eth = 0;
-                }
-            }
-            return genconf(rand, eth);
+            return genconf(rand, 1);
         } else if (CString_strcmp(argv[1], "--pidfile") == 0) {
             // deprecated
             fprintf(stderr, "'--pidfile' option is deprecated.\n");
@@ -529,6 +553,7 @@ int main(int argc, char** argv)
         } else if ((CString_strcmp(argv[1], "--version") == 0)
             || (CString_strcmp(argv[1], "-v") == 0))
         {
+            printf("Cjdns version: %s\n", CJD_PACKAGE_VERSION);
             printf("Cjdns protocol version: %d\n", Version_CURRENT_PROTOCOL);
             return 0;
         } else if (CString_strcmp(argv[1], "--cleanconf") == 0) {
@@ -542,12 +567,24 @@ int main(int argc, char** argv)
         }
     } else if (argc > 2) {
         // more than one argument?
-        fprintf(stderr, "%s: too many arguments [%s]\n", argv[0], argv[1]);
-        fprintf(stderr, "Try `%s --help' for more information.\n", argv[0]);
         // because of '--pidfile $filename'?
-        if (CString_strcmp(argv[1], "--pidfile") == 0)
-        {
+        if (CString_strcmp(argv[1], "--pidfile") == 0) {
             fprintf(stderr, "\n'--pidfile' option is deprecated.\n");
+        } else if (CString_strcmp(argv[1], "--genconf") == 0) {
+            bool eth = 1;
+            for (int i = 2; i < argc; i++) {
+                if (!CString_strcmp(argv[i], "--no-eth")) {
+                    eth = 0;
+                } else {
+                    fprintf(stderr, "%s: unrecognized option '%s'\n", argv[0], argv[i]);
+                    fprintf(stderr, "Try `%s --help' for more information.\n", argv[0]);
+                    return -1;
+                }
+            }
+            return genconf(rand, eth);
+        } else {
+            fprintf(stderr, "%s: too many arguments [%s]\n", argv[0], argv[1]);
+            fprintf(stderr, "Try `%s --help' for more information.\n", argv[0]);
         }
         return -1;
     }
@@ -584,9 +621,9 @@ int main(int argc, char** argv)
     struct Log* logger = FileWriterLog_new(stdout, allocator);
 
     // --------------------- Get Admin  --------------------- //
-    Dict* configAdmin = Dict_getDict(&config, String_CONST("admin"));
-    String* adminPass = Dict_getString(configAdmin, String_CONST("password"));
-    String* adminBind = Dict_getString(configAdmin, String_CONST("bind"));
+    Dict* configAdmin = Dict_getDictC(&config, "admin");
+    String* adminPass = Dict_getStringC(configAdmin, "password");
+    String* adminBind = Dict_getStringC(configAdmin, "bind");
     if (!adminPass) {
         adminPass = String_newBinary(NULL, 32, allocator);
         Random_base32(rand, (uint8_t*) adminPass->bytes, 32);
@@ -609,15 +646,23 @@ int main(int argc, char** argv)
     struct Allocator* corePipeAlloc = Allocator_child(allocator);
     char corePipeName[64] = "client-core-";
     Random_base32(rand, (uint8_t*)corePipeName+CString_strlen(corePipeName), 31);
+    String* pipePath = Dict_getStringC(&config, "pipe");
+    if (!pipePath) {
+        pipePath = String_CONST(Pipe_PATH);
+    }
+    if (!Defined(win32) && access(pipePath->bytes, W_OK)) {
+        Except_throw(eh, "Can't have writable permission to pipe directory.");
+    }
     Assert_ifParanoid(EventBase_eventCount(eventBase) == 0);
-    struct Pipe* corePipe = Pipe_named(corePipeName, eventBase, eh, corePipeAlloc);
+    struct Pipe* corePipe = Pipe_named(pipePath->bytes, corePipeName, eventBase,
+                                       eh, corePipeAlloc);
     Assert_ifParanoid(EventBase_eventCount(eventBase) == 2);
     corePipe->logger = logger;
 
-    char* args[] = { "core", corePipeName, NULL };
+    char* args[] = { "core", pipePath->bytes, corePipeName, NULL };
 
     // --------------------- Spawn Angel --------------------- //
-    String* privateKey = Dict_getString(&config, String_CONST("privateKey"));
+    String* privateKey = Dict_getStringC(&config, "privateKey");
 
     char* corePath = Process_getPath(allocator);
 
@@ -634,13 +679,13 @@ int main(int argc, char** argv)
     // --------------------- Pre-Configure Core ------------------------- //
     Dict* preConf = Dict_new(allocator);
     Dict* adminPreConf = Dict_new(allocator);
-    Dict_putDict(preConf, String_CONST("admin"), adminPreConf, allocator);
-    Dict_putString(preConf, String_CONST("privateKey"), privateKey, allocator);
-    Dict_putString(adminPreConf, String_CONST("bind"), adminBind, allocator);
-    Dict_putString(adminPreConf, String_CONST("pass"), adminPass, allocator);
-    Dict* logging = Dict_getDict(&config, String_CONST("logging"));
+    Dict_putDictC(preConf, "admin", adminPreConf, allocator);
+    Dict_putStringC(preConf, "privateKey", privateKey, allocator);
+    Dict_putStringC(adminPreConf, "bind", adminBind, allocator);
+    Dict_putStringC(adminPreConf, "pass", adminPass, allocator);
+    Dict* logging = Dict_getDictC(&config, "logging");
     if (logging) {
-        Dict_putDict(preConf, String_CONST("logging"), logging, allocator);
+        Dict_putDictC(preConf, "logging", logging, allocator);
     }
 
     struct Message* toCoreMsg = Message_new(0, 1024, allocator);
@@ -660,8 +705,8 @@ int main(int argc, char** argv)
     corePipe = NULL;
 
     // --------------------- Get Admin Addr/Port/Passwd --------------------- //
-    Dict* responseFromCoreAdmin = Dict_getDict(responseFromCore, String_CONST("admin"));
-    adminBind = Dict_getString(responseFromCoreAdmin, String_CONST("bind"));
+    Dict* responseFromCoreAdmin = Dict_getDictC(responseFromCore, "admin");
+    adminBind = Dict_getStringC(responseFromCoreAdmin, "bind");
 
     if (!adminBind) {
         Except_throw(eh, "didn't get address and port back from core");
@@ -684,7 +729,7 @@ int main(int argc, char** argv)
 
     // --------------------- noBackground ------------------------ //
 
-    int64_t* noBackground = Dict_getInt(&config, String_CONST("noBackground"));
+    int64_t* noBackground = Dict_getIntC(&config, "noBackground");
     if (forceNoBackground || (noBackground && *noBackground)) {
         Log_debug(logger, "Keeping cjdns client alive because %s",
             (forceNoBackground) ? "--nobg was specified on the command line"

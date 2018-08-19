@@ -10,7 +10,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #ifndef FileWriterLog_H
 #define FileWriterLog_H
@@ -18,7 +18,7 @@
 #include "memory/Allocator.h"
 #include "util/log/Log.h"
 #include "util/Linker.h"
-Linker_require("util/log/FileWriterLog.c")
+Linker_require("util/log/FileWriterLog.c");
 #include <stdio.h>
 
 struct Log* FileWriterLog_new(FILE* writeTo, struct Allocator* alloc);

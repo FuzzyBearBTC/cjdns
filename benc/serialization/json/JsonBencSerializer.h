@@ -10,14 +10,14 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #ifndef JsonBencSerializer_H
 #define JsonBencSerializer_H
 
 #include "benc/serialization/BencSerializer.h"
 #include "util/Linker.h"
-Linker_require("benc/serialization/json/JsonBencSerializer.c")
+Linker_require("benc/serialization/json/JsonBencSerializer.c");
 
-const struct BencSerializer* JsonBencSerializer_get();
+const struct BencSerializer* JsonBencSerializer_get(void);
 #endif

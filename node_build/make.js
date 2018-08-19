@@ -10,7 +10,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 var Fs = require('fs');
 var nThen = require('nthen');
@@ -23,18 +23,20 @@ var CanCompile = require('./CanCompile');
 var Builder = require('./builder');
 var TestRunner = require('./TestRunner');
 
-// ['linux','darwin','sunos','win32','freebsd','openbsd']
+// ['linux','darwin','sunos','win32','freebsd','openbsd','netbsd']
 var SYSTEM = process.env['SYSTEM'] || process.platform;
 var GCC = process.env['CC'];
 var CFLAGS = process.env['CFLAGS'];
 var LDFLAGS = process.env['LDFLAGS'];
 
-var NO_MARCH_FLAG = ['ppc', 'ppc64'];
+var NO_MARCH_FLAG = ['arm', 'ppc', 'ppc64'];
 
 if (GCC) {
     // Already specified.
 } else if (SYSTEM === 'openbsd') {
     GCC = 'egcc';
+} else if (SYSTEM === 'freebsd') {
+    GCC = 'clang';
 } else {
     GCC = 'gcc';
 }
@@ -43,20 +45,23 @@ Builder.configure({
     systemName:     SYSTEM,
     crossCompiling: process.env['CROSS'] !== undefined,
     gcc:            GCC,
-    tempDir:        '/tmp',
+    tempDir:        process.env['CJDNS_BUILD_TMPDIR'] || '/tmp',
     optimizeLevel:  '-O3',
     logLevel:       process.env['Log_LEVEL'] || 'DEBUG'
 }, function (builder, waitFor) {
+
     builder.config.cflags.push(
         '-std=c99',
         '-Wall',
         '-Wextra',
         '-Werror',
         '-Wno-pointer-sign',
+        '-Wmissing-prototypes',
         '-pedantic',
         '-D', builder.config.systemName + '=1',
+        '-D', 'CJD_PACKAGE_VERSION="' + builder.config.version + '"',
         '-Wno-unused-parameter',
-        '-fomit-frame-pointer',
+//        '-fomit-frame-pointer',
 
         '-D', 'Log_' + builder.config.logLevel,
 
@@ -74,6 +79,8 @@ Builder.configure({
         '-D', 'PARANOIA=1'
     );
 
+    if (process.env['SUBNODE']) { builder.config.cflags.push('-DSUBNODE=1'); }
+
     if (process.env['GCOV']) {
         builder.config.cflags.push('-fprofile-arcs', '-ftest-coverage');
         builder.config.ldflags.push('-fprofile-arcs', '-ftest-coverage');
@@ -85,8 +92,15 @@ Builder.configure({
         builder.config.cflags.push('-D', 'TESTING=1');
     }
 
+    if (process.env['ADDRESS_PREFIX'] !== undefined) {
+        builder.config.cflags.push('-D', 'ADDRESS_PREFIX=' + process.env['ADDRESS_PREFIX']);
+    }
+    if (process.env['ADDRESS_PREFIX_BITS'] !== undefined) {
+        builder.config.cflags.push('-D', 'ADDRESS_PREFIX_BITS=' + process.env['ADDRESS_PREFIX_BITS']);
+    }
+
     if (!builder.config.crossCompiling) {
-        if (NO_MARCH_FLAG.indexOf(process.arch) < -1) {
+        if (NO_MARCH_FLAG.indexOf(process.arch) == -1) {
             builder.config.cflags.push('-march=native');
         }
     }
@@ -147,6 +161,10 @@ Builder.configure({
                 [].push.apply(builder.config.cflags, cflags);
             }
         });
+    }
+
+    if (!/^\-O0$/.test(builder.config.optimizeLevel)) {
+        builder.config.cflags.push('-D_FORTIFY_SOURCE=2');
     }
 
     // We also need to pass various architecture/floating point flags to GCC when invoked as
@@ -222,7 +240,7 @@ Builder.configure({
 
     var dependencyDir = builder.config.buildDir + '/dependencies';
     var libuvLib = dependencyDir + '/libuv/out/Release/libuv.a';
-    if (builder.config.systemName === 'win32') {
+    if (['win32', 'netbsd'].indexOf(builder.config.systemName) >= 0) {//this might be needed for other BSDs
         libuvLib = dependencyDir + '/libuv/out/Release/obj.target/libuv.a';
     }
 
@@ -241,6 +259,9 @@ Builder.configure({
         builder.config.libs.push(dependencyDir + '/cnacl/jsbuild/libnacl.a');
         builder.config.includeDirs.push(dependencyDir + '/cnacl/jsbuild/include/');
 
+        // needed for Sign.c which pulls in crypto_int32.h
+        builder.config.includeDirs.push(dependencyDir + '/cnacl/jsbuild/include_internal/');
+
         Fs.exists(dependencyDir + '/cnacl/jsbuild/libnacl.a', waitFor(function (exists) {
             if (exists) { return; }
 
@@ -256,13 +277,17 @@ Builder.configure({
 
                 args.unshift(builder.config.optimizeLevel, '-fomit-frame-pointer');
 
+                if (!/^\-O0$/.test(builder.config.optimizeLevel)) {
+                    args.unshift('-D_FORTIFY_SOURCE=2');
+                }
+
                 if (CFLAGS) {
                     [].push.apply(args, CFLAGS.split(' '));
                 }
 
                 if (!builder.config.crossCompiling) {
-                    if (NO_MARCH_FLAG.indexOf(process.arch) < -1) {
-                        builder.config.cflags.push('-march=native');
+                    if (NO_MARCH_FLAG.indexOf(process.arch) == -1) {
+                        args.unshift('-march=native');
                     }
                 }
 
@@ -291,7 +316,7 @@ Builder.configure({
             builder.config.libs.push('-lrt'); // clock_gettime()
         } else if (builder.config.systemName === 'darwin') {
             builder.config.libs.push('-framework', 'CoreServices');
-        } else if (['freebsd', 'openbsd'].indexOf(builder.config.systemName) >= 0) {
+        } else if (['freebsd', 'openbsd', 'netbsd'].indexOf(builder.config.systemName) >= 0) {
             builder.config.cflags.push('-Wno-overlength-strings');
             builder.config.libs.push('-lkvm');
         } else if (builder.config.systemName === 'sunos') {
@@ -349,9 +374,10 @@ Builder.configure({
                 args.push.apply(args, env.GYP_ADDITIONAL_ARGS.split(' '));
             }
 
-            if (['freebsd', 'openbsd'].indexOf(builder.config.systemName) !== -1) {
+            if (['freebsd', 'openbsd', 'netbsd'].indexOf(builder.config.systemName) !== -1) {
                 // This platform lacks a functioning sem_open implementation, therefore...
                 args.push('--no-parallel');
+                args.push('-DOS=' + builder.config.systemName);
             }
 
             var gyp = Spawn(python, args, {env:env, stdio:'inherit'});
@@ -369,12 +395,16 @@ Builder.configure({
                 ];
                 var cflags = [builder.config.optimizeLevel, '-DNO_EMFILE_TRICK=1'];
 
+                if (!/^\-O0$/.test(builder.config.optimizeLevel)) {
+                    cflags.push('-D_FORTIFY_SOURCE=2');
+                }
+
                 if (!(/darwin|win32/i.test(builder.config.systemName))) {
                     cflags.push('-fPIC');
                 }
                 args.push('CFLAGS=' + cflags.join(' '));
 
-                var makeCommand = ['freebsd', 'openbsd'].indexOf(builder.config.systemName) >= 0 ? 'gmake' : 'make';
+                var makeCommand = ['freebsd', 'openbsd', 'netbsd'].indexOf(builder.config.systemName) >= 0 ? 'gmake' : 'make';
                 var make = Spawn(makeCommand, args, {stdio: 'inherit'});
 
                 make.on('error', function (err) {
@@ -407,6 +437,7 @@ Builder.configure({
     builder.buildExecutable('contrib/c/privatetopublic.c');
     builder.buildExecutable('contrib/c/sybilsim.c');
     builder.buildExecutable('contrib/c/makekeys.c');
+    builder.buildExecutable('contrib/c/mkpasswd.c');
 
     builder.buildExecutable('crypto/random/randombytes.c');
 

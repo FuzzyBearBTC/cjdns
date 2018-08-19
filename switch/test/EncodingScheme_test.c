@@ -10,11 +10,12 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include "benc/String.h"
 #include "crypto/random/Random.h"
 #include "switch/EncodingScheme.h"
+#define NumberCompress_OLD_CODE
 #include "switch/NumberCompress.h"
 #include "memory/Allocator.h"
 #include "memory/MallocAllocator.h"
@@ -72,7 +73,7 @@ static struct EncodingScheme* randomScheme(struct Random* rand, struct Allocator
             if (((out->forms[j].prefix ^ out->forms[i].prefix) & ((1<<minPfx)-1)) == 0) {
                 // collision, destroy both entries and try again.
                 if (j != i-1) {
-                    Bits_memcpyConst(&out->forms[j],
+                    Bits_memcpy(&out->forms[j],
                                      &out->forms[i-1],
                                      sizeof(struct EncodingScheme_Form));
                 }
@@ -168,8 +169,8 @@ static int convertLabel(struct EncodingScheme_Form* iform,
     } s;
     s.scheme.count = 2;
     s.scheme.forms = s.forms;
-    Bits_memcpyConst(&s.forms[0], iform, sizeof(struct EncodingScheme_Form));
-    Bits_memcpyConst(&s.forms[1], oform, sizeof(struct EncodingScheme_Form));
+    Bits_memcpy(&s.forms[0], iform, sizeof(struct EncodingScheme_Form));
+    Bits_memcpy(&s.forms[1], oform, sizeof(struct EncodingScheme_Form));
 
     int iformNum = 0;
     int oformNum = 1;
@@ -194,26 +195,6 @@ static int convertLabel(struct EncodingScheme_Form* iform,
     uint64_t additional = label >> s.forms[0].prefixLen;
     uint64_t director = additional & Bits_maxBits64(s.forms[0].bitCount);
     additional = additional >> s.forms[0].bitCount;
-
-    // Conversions are necessary for two reasons.
-    // #1 ensure 0001 always references interface 1, the self interface.
-    // #2 reuse interface the binary encoding for interface 1 in other EncodingForms
-    //    because interface 1 cannot be expressed as anything other than 0001
-    if ((s.forms[0].prefix & Bits_maxBits64(s.forms[0].prefixLen)) == 1) {
-        // Swap 0 and 1 because zero is represented as 1 and 1 is handled specially
-        if (director == 1) { director--; }
-    } else if (director) {
-        // Reuse the number 1 for 2 and 2 for 3 etc. to gain an extra slot in all other encodings.
-        director++;
-    }
-
-    if ((s.forms[1].prefix & Bits_maxBits64(s.forms[1].prefixLen)) == 1) {
-        // Swap 1 and 0 back if necessary.
-        if (director == 0) { director++; }
-    } else if (director) {
-        // Or move the numbers down by one.
-        director--;
-    }
 
     uint64_t converted = (additional << s.forms[1].bitCount) | director;
     converted = (converted << s.forms[1].prefixLen) | s.forms[1].prefix;

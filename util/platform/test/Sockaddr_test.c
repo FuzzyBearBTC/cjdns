@@ -10,7 +10,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include "memory/MallocAllocator.h"
 #include "util/platform/Sockaddr.h"
@@ -69,19 +69,9 @@ static void parse()
     expectFailure("1.0.0.");
 }
 
-static void fromName()
-{
-    struct Allocator* alloc = MallocAllocator_new(20000);
-    Sockaddr_fromName("localhost", alloc);
-    // This will fail in some cases (eg dns hijacking)
-    //Assert_true(!Sockaddr_fromName("hasjklgyolgbvlbiogi", alloc));
-    Allocator_free(alloc);
-}
-
 
 int main()
 {
     parse();
-    fromName();
     return 0;
 }

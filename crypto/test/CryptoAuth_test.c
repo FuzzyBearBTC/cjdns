@@ -10,7 +10,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include "crypto/random/Random.h"
 #include "crypto/CryptoAuth.h"
@@ -64,7 +64,7 @@ static struct Context* init(uint8_t* privateKeyA,
     struct EventBase* base = ctx->base = EventBase_new(alloc);
 
     ctx->ca1 = CryptoAuth_new(alloc, privateKeyA, base, logger, rand);
-    ctx->sess1 = CryptoAuth_newSession(ctx->ca1, alloc, publicKeyB, NULL, false, "cif1");
+    ctx->sess1 = CryptoAuth_newSession(ctx->ca1, alloc, publicKeyB, false, "cif1");
 
     ctx->ca2 = CryptoAuth_new(alloc, privateKeyB, base, logger, rand);
     if (password) {
@@ -72,7 +72,7 @@ static struct Context* init(uint8_t* privateKeyA,
         CryptoAuth_setAuth(passStr, NULL, ctx->sess1);
         CryptoAuth_addUser(passStr, String_new(USEROBJ, alloc), ctx->ca2);
     }
-    ctx->sess2 = CryptoAuth_newSession(ctx->ca2, alloc, NULL, NULL, false, "cif2");
+    ctx->sess2 = CryptoAuth_newSession(ctx->ca2, alloc, publicKeyA, false, "cif2");
 
     return ctx;
 }
@@ -230,13 +230,13 @@ static void replayKeyPacket(int scenario)
 static void hellosCrossedOnTheWire()
 {
     struct Context* ctx = simpleInit();
-    Bits_memcpyConst(ctx->sess2->herPublicKey, ctx->ca1->publicKey, 32);
+    Bits_memcpy(ctx->sess2->herPublicKey, ctx->ca1->publicKey, 32);
 
     struct Message* hello2 = encryptMsg(ctx, ctx->sess2, "hello2");
     struct Message* hello1 = encryptMsg(ctx, ctx->sess1, "hello1");
 
     decryptMsg(ctx, hello2, ctx->sess1, "hello2");
-    decryptMsg(ctx, hello1, ctx->sess2, NULL); //"hello1"); // The message is suppressed.
+    decryptMsg(ctx, hello1, ctx->sess2, "hello1");
 
     sendToIf2(ctx, "hello world");
     sendToIf1(ctx, "hello cjdns");
@@ -254,8 +254,8 @@ static void reset()
     sendToIf2(ctx, "hai");
     sendToIf1(ctx, "brb");
 
-    Assert_true(CryptoAuth_getState(ctx->sess1) == CryptoAuth_ESTABLISHED);
-    Assert_true(CryptoAuth_getState(ctx->sess2) == CryptoAuth_ESTABLISHED);
+    Assert_true(CryptoAuth_getState(ctx->sess1) == CryptoAuth_State_ESTABLISHED);
+    Assert_true(CryptoAuth_getState(ctx->sess2) == CryptoAuth_State_ESTABLISHED);
 
     CryptoAuth_reset(ctx->sess1);
 
@@ -271,8 +271,8 @@ static void reset()
     sendToIf1(ctx, "ok works");
     sendToIf2(ctx, "yup");
 
-    Assert_true(CryptoAuth_getState(ctx->sess1) == CryptoAuth_ESTABLISHED);
-    Assert_true(CryptoAuth_getState(ctx->sess2) == CryptoAuth_ESTABLISHED);
+    Assert_true(CryptoAuth_getState(ctx->sess1) == CryptoAuth_State_ESTABLISHED);
+    Assert_true(CryptoAuth_getState(ctx->sess2) == CryptoAuth_State_ESTABLISHED);
 
     Allocator_free(ctx->alloc);
 }

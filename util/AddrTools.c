@@ -10,8 +10,9 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+#include "util/AddrTools.h"
 #include "util/Bits.h"
 #include "util/Endian.h"
 #include "util/Hex.h"
@@ -87,7 +88,7 @@ int AddrTools_parsePath(uint64_t* out, const uint8_t netAddr[20])
         return -1;
     }
     uint64_t out_be;
-    Bits_memcpyConst(&out_be, numberBytes, 8);
+    Bits_memcpy(&out_be, numberBytes, 8);
     *out = Endian_bigEndianToHost64(out_be);
 
     return 0;
@@ -196,7 +197,7 @@ int AddrTools_parseIp(uint8_t out[16], const uint8_t hexAddr[40])
     }
     uint8_t* addr = NULL;
     Sockaddr_getAddress(&ss.addr, &addr);
-    Bits_memcpyConst(out, addr, 16);
+    Bits_memcpy(out, addr, 16);
     return 0;
 }
 

@@ -10,7 +10,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #ifndef DeterminentRandomSeed_H
 #define DeterminentRandomSeed_H
@@ -18,7 +18,7 @@
 #include "crypto/random/seed/RandomSeed.h"
 #include "memory/Allocator.h"
 #include "util/Linker.h"
-Linker_require("crypto/random/test/DeterminentRandomSeed.c")
+Linker_require("crypto/random/test/DeterminentRandomSeed.c");
 
 struct RandomSeed* DeterminentRandomSeed_new(struct Allocator* alloc, uint8_t buff[64]);
 

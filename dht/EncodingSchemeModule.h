@@ -10,16 +10,20 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #ifndef EncodingSchemeModule_H
 #define EncodingSchemeModule_H
+
+#ifdef SUBNODE
+    #error "this file should not be included in subnode"
+#endif
 
 #include "dht/DHTModuleRegistry.h"
 #include "memory/Allocator.h"
 #include "util/log/Log.h"
 #include "util/Linker.h"
-Linker_require("dht/EncodingSchemeModule.c")
+Linker_require("dht/EncodingSchemeModule.c");
 
 void EncodingSchemeModule_register(struct DHTModuleRegistry* reg,
                                    struct Log* logger,

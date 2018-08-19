@@ -10,7 +10,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #ifndef SystemRandomSeed_H
 #define SystemRandomSeed_H
@@ -18,7 +18,7 @@
 #include "crypto/random/seed/RandomSeed.h"
 #include "crypto/random/seed/SystemRandomSeed.h"
 #include "util/Linker.h"
-Linker_require("crypto/random/seed/SystemRandomSeed.c")
+Linker_require("crypto/random/seed/SystemRandomSeed.c");
 
 /**
  * Create a new randomseed with the default system providers as well as optionally more providers

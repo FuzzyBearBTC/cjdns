@@ -10,7 +10,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #ifndef List_H
 #define List_H
@@ -18,7 +18,7 @@
 #include "memory/Allocator.h"
 #include "benc/Object.h"
 #include "util/Linker.h"
-Linker_require("benc/List.c")
+Linker_require("benc/List.c");
 
 struct List_Item;
 struct List_Item {
@@ -54,6 +54,8 @@ void List_addInt(List* list, int64_t toAdd, struct Allocator* allocator);
  * @param allocator the means of getting memory space for storing the list entry.
  */
 void List_addString(List* list, String* toAdd, struct Allocator* allocator);
+
+#define List_addStringC(l,s,a) List_addString(l, String_new(s, a), a)
 
 /**
  * Add a dictionary to a list, if the list does not exist then it is allocated.

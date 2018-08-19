@@ -10,7 +10,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #ifndef ETHInterface_admin_H
 #define ETHInterface_admin_H
@@ -21,7 +21,7 @@
 #include "util/log/Log.h"
 #include "util/events/EventBase.h"
 #include "util/Linker.h"
-Linker_require("interface/ETHInterface_admin.c")
+Linker_require("interface/ETHInterface_admin.c");
 
 void ETHInterface_admin_register(struct EventBase* base,
                                  struct Allocator* alloc,

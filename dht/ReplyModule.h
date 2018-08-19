@@ -10,14 +10,18 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #ifndef ReplyModule_H
 #define ReplyModule_H
 
+#ifdef SUBNODE
+    #error "this file should not be included in subnode"
+#endif
+
 #include "dht/DHTModuleRegistry.h"
 #include "util/Linker.h"
-Linker_require("dht/ReplyModule.c")
+Linker_require("dht/ReplyModule.c");
 
 /**
  * The reply module replies to all incoming queries.

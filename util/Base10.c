@@ -10,12 +10,13 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #include "util/Base10.h"
 #include "wire/Message.h"
 #include "exception/Except.h"
+#include "util/CString.h"
 
 #include <stdbool.h>
 
@@ -63,4 +64,21 @@ int64_t Base10_read(struct Message* msg, struct Except* eh)
         Message_push8(msg, chr, eh);
         Except_throw(eh, "No base10 characters found");
     }
+}
+
+int Base10_fromString(uint8_t* str, int64_t* numOut)
+{
+    int len = CString_strlen(str);
+    if (len < 1) {
+        return -1;
+    } else if (str[0] == '-') {
+        if (len < 2 || str[1] < '0' || str[1] > '9') {
+            return -1;
+        }
+    } else if (str[0] < '0' || str[0] > '9') {
+        return -1;
+    }
+    struct Message msg = { .length = len, .bytes = str, .capacity = len };
+    *numOut = Base10_read(&msg, NULL);
+    return 0;
 }

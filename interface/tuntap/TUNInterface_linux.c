@@ -10,7 +10,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include "interface/tuntap/TUNInterface.h"
 #include "exception/Except.h"
@@ -27,12 +27,12 @@
 #include <sys/types.h>
 #include <stdlib.h>
 #include <stddef.h>
-#include <net/if.h>
 #include <arpa/inet.h>
 #include <string.h>
 #include <linux/if.h>
 #include <linux/if_tun.h>
 #include <linux/if_ether.h>
+#include <net/if.h>
 
 #if defined(android)
   #define DEVICE_PATH "/dev/tun"

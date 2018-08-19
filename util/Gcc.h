@@ -10,10 +10,22 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #ifndef Gcc_H
 #define Gcc_H
+
+#if !defined(__clang__) && \
+    defined(__GNUC__) && \
+    (__GNUC__ > 6)
+
+#define Gcc_FALLTHRU \
+    __attribute__((fallthrough));
+
+#else
+#define Gcc_FALLTHRU
+
+#endif
 
 #if !defined(__clang__) && \
     defined(__GNUC__) && \

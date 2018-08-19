@@ -10,7 +10,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #ifndef Cloner_H
 #define Cloner_H
@@ -20,7 +20,7 @@
 #include "benc/Dict.h"
 #include "benc/String.h"
 #include "util/Linker.h"
-Linker_require("benc/serialization/cloner/Cloner.c")
+Linker_require("benc/serialization/cloner/Cloner.c");
 
 Dict* Cloner_cloneDict(Dict* orig, struct Allocator* alloc);
 

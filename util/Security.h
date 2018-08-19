@@ -10,7 +10,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #ifndef Security_H
 #define Security_H
@@ -22,9 +22,9 @@
 #include "util/events/EventBase.h"
 #include "util/Linker.h"
 #ifdef win32
-    Linker_require("util/Security_win32.c")
+    Linker_require("util/Security_win32.c");
 #else
-    Linker_require("util/Security.c")
+    Linker_require("util/Security.c");
 #endif
 
 #include <stdint.h>

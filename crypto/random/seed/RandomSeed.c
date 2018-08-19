@@ -10,7 +10,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include "crypto/random/seed/RandomSeed.h"
 #include "util/Identity.h"
@@ -57,7 +57,7 @@ static int get(struct RandomSeed* rs, uint64_t buffer[8])
         }
     }
     Assert_true(sizeof(buff.output) == 64);
-    Bits_memcpyConst(buffer, buff.output, 64);
+    Bits_memcpy(buffer, buff.output, 64);
 
     if (successCount > 0) {
         Log_info(ctx->logger, "Seeding random number generator succeeded with [%d] sources",

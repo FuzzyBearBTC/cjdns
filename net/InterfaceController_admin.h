@@ -10,7 +10,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #ifndef InterfaceController_admin_H
 #define InterfaceController_admin_H
@@ -19,7 +19,7 @@
 #include "net/InterfaceController.h"
 #include "memory/Allocator.h"
 #include "util/Linker.h"
-Linker_require("net/InterfaceController_admin.c")
+Linker_require("net/InterfaceController_admin.c");
 
 void InterfaceController_admin_register(struct InterfaceController* ic,
                                         struct Admin* admin,

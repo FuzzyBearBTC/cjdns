@@ -10,7 +10,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include "util/AverageRoller.h"
 #include "util/AverageRoller_pvt.h"
@@ -27,7 +27,7 @@ struct AverageRoller* AverageRoller_new(const uint32_t windowSeconds,
         + (sizeof(struct AverageRoller_SumAndEntryCount) * (windowSeconds - 1));
     struct AverageRoller_pvt* roller = Allocator_calloc(allocator, size, 1);
 
-    Bits_memcpyConst(roller, (&(struct AverageRoller_pvt) {
+    Bits_memcpy(roller, (&(struct AverageRoller_pvt) {
         .windowSeconds = windowSeconds,
         .eventBase = eventBase,
         .lastUpdateTime = (uint32_t) Time_currentTimeSeconds(eventBase)

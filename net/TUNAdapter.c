@@ -10,7 +10,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include "interface/Iface.h"
 #include "memory/Allocator.h"
@@ -83,12 +83,9 @@ static Iface_DEFUN incomingFromTunIf(struct Message* msg, struct Iface* tunIf)
         TUNMessageType_push(msg, ethertype, NULL);
         return Iface_next(tunIf, msg);
     }
-    if (!Bits_memcmp(header->destinationAddr, "\xfc\0\0\0\0\0\0\0\0\0\0\0\0\0\0\x01", 16)) {
-        return Iface_next(&ud->pub.magicIf, msg);
-    }
 
     // first move the dest addr to the right place.
-    Bits_memmoveConst(header->destinationAddr - DataHeader_SIZE, header->destinationAddr, 16);
+    Bits_memmove(header->destinationAddr - DataHeader_SIZE, header->destinationAddr, 16);
 
     Message_shift(msg, DataHeader_SIZE + RouteHeader_SIZE - Headers_IP6Header_SIZE, NULL);
     struct RouteHeader* rh = (struct RouteHeader*) msg->bytes;
@@ -120,13 +117,6 @@ static Iface_DEFUN incomingFromIpTunnelIf(struct Message* msg, struct Iface* ipT
     return sendToTunIf(msg, ud);
 }
 
-static Iface_DEFUN incomingFromMagicIf(struct Message* msg, struct Iface* magicIf)
-{
-    struct TUNAdapter_pvt* ud =
-        Identity_containerOf(magicIf, struct TUNAdapter_pvt, pub.magicIf);
-    return sendToTunIf(msg, ud);
-}
-
 static Iface_DEFUN incomingFromUpperDistributorIf(struct Message* msg,
                                                   struct Iface* upperDistributorIf)
 {
@@ -136,12 +126,12 @@ static Iface_DEFUN incomingFromUpperDistributorIf(struct Message* msg,
     struct RouteHeader* hdr = (struct RouteHeader*) msg->bytes;
     struct DataHeader* dh = (struct DataHeader*) &hdr[1];
     enum ContentType type = DataHeader_getContentType(dh);
-    Assert_true(type <= ContentType_IP6_RAW);
+    Assert_true(type <= ContentType_IP6_MAX);
 
     // Shift ip address into destination slot.
-    Bits_memmoveConst(hdr->ip6 + DataHeader_SIZE - 16, hdr->ip6, 16);
+    Bits_memmove(hdr->ip6 + DataHeader_SIZE - 16, hdr->ip6, 16);
     // put my address as destination.
-    Bits_memcpyConst(&hdr->ip6[DataHeader_SIZE], ud->myIp6, 16);
+    Bits_memcpy(&hdr->ip6[DataHeader_SIZE], ud->myIp6, 16);
 
     Message_shift(msg, Headers_IP6Header_SIZE - DataHeader_SIZE - RouteHeader_SIZE, NULL);
     struct Headers_IP6Header* ip6 = (struct Headers_IP6Header*) msg->bytes;
@@ -161,9 +151,8 @@ struct TUNAdapter* TUNAdapter_new(struct Allocator* allocator, struct Log* log, 
     out->pub.tunIf.send = incomingFromTunIf;
     out->pub.ipTunnelIf.send = incomingFromIpTunnelIf;
     out->pub.upperDistributorIf.send = incomingFromUpperDistributorIf;
-    out->pub.magicIf.send = incomingFromMagicIf;
     out->log = log;
     Identity_set(out);
-    Bits_memcpyConst(out->myIp6, myIp6, 16);
+    Bits_memcpy(out->myIp6, myIp6, 16);
     return &out->pub;
 }

@@ -10,7 +10,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #ifndef AdminClient_H
 #define AdminClient_H
@@ -23,7 +23,7 @@
 #include "util/events/EventBase.h"
 #include "util/platform/Sockaddr.h"
 #include "util/Linker.h"
-Linker_require("client/AdminClient.c")
+Linker_require("client/AdminClient.c");
 
 enum AdminClient_Error
 {

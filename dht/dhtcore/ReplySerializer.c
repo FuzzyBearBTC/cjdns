@@ -10,7 +10,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include "benc/Dict.h"
 #include "benc/String.h"
@@ -21,6 +21,10 @@
 #include "dht/Address.h"
 #include "memory/Allocator.h"
 #include "switch/LabelSplicer.h"
+
+#define NumberCompress_OLD_CODE
+#include "switch/NumberCompress.h"
+
 #include "util/Identity.h"
 #include "util/log/Log.h"
 #include "util/Assert.h"
@@ -36,7 +40,10 @@ struct Address_List* ReplySerializer_parse(struct Address* fromNode,
 {
     String* nodes = Dict_getString(result, CJDHTConstants_NODES);
 
-    if (!nodes) { return NULL; }
+    if (!nodes) {
+        Log_debug(log, "Missing 'n' field in reply");
+        return NULL;
+    }
 
     if (nodes->len == 0 || nodes->len % Address_SERIALIZED_SIZE != 0) {
         Log_debug(log, "Dropping unrecognized reply");
@@ -93,13 +100,41 @@ struct Address_List* ReplySerializer_parse(struct Address* fromNode,
 
         Address_getPrefix(&addr);
         if (!AddressCalc_validAddress(addr.ip6.bytes)) {
-            Log_debug(log, "Was told garbage.\n");
+            struct Allocator* tmpAlloc = Allocator_child(alloc);
+            String* printed = Address_toString(&addr, tmpAlloc);
+            uint8_t ipPrinted[40];
+            Address_printIp(ipPrinted, &addr);
+            Log_debug(log, "Was told garbage addr [%s] [%s]", printed->bytes, ipPrinted);
+            Allocator_free(tmpAlloc);
             // This should never happen, badnode.
             continue;
         }
 
-        Bits_memcpyConst(&out->elems[j++], &addr, sizeof(struct Address));
+        Bits_memcpy(&out->elems[j++], &addr, sizeof(struct Address));
     }
     out->length = j;
     return out;
+}
+
+void ReplySerializer_serialize(struct Address_List* addrs,
+                               Dict* out,
+                               struct Address* convertDirectorFor,
+                               struct Allocator* alloc)
+{
+    if (!addrs->length) { return; }
+    String* nodes = String_newBinary(NULL, addrs->length * Address_SERIALIZED_SIZE, alloc);
+    struct VersionList* versions = VersionList_new(addrs->length, alloc);
+    for (int i = 0; i < addrs->length; i++) {
+        versions->versions[i] = addrs->elems[i].protocolVersion;
+        if (!convertDirectorFor) {
+            Address_serialize(&nodes->bytes[i * Address_SERIALIZED_SIZE], &addrs->elems[i]);
+        } else {
+            struct Address addr;
+            Bits_memcpy(&addr, &addrs->elems[i], sizeof(struct Address));
+            addr.path = NumberCompress_getLabelFor(addr.path, convertDirectorFor->path);
+            Address_serialize(&nodes->bytes[i * Address_SERIALIZED_SIZE], &addr);
+        }
+    }
+    Dict_putStringC(out, "n", nodes, alloc);
+    Dict_putStringC(out, "np", VersionList_stringify(versions, alloc), alloc);
 }

@@ -10,7 +10,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #ifndef Security_admin_H
 #define Security_admin_H
@@ -20,7 +20,7 @@
 #include "util/log/Log.h"
 #include "util/Security.h"
 #include "util/Linker.h"
-Linker_require("util/Security_admin.c")
+Linker_require("util/Security_admin.c");
 
 void Security_admin_register(struct Allocator* alloc,
                              struct Log* logger,

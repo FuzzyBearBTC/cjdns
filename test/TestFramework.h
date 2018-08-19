@@ -10,14 +10,14 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #ifndef TestFramework_H
 #define TestFramework_H
 
 #include "net/NetCore.h"
 #include "util/Linker.h"
-Linker_require("test/TestFramework.c")
+Linker_require("test/TestFramework.c");
 
 struct TestFramework
 {

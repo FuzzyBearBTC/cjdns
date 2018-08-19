@@ -10,7 +10,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #ifndef AverageRoller_H
 #define AverageRoller_H
@@ -20,7 +20,7 @@
 #include <stdint.h>
 #include "util/events/EventBase.h"
 #include "util/Linker.h"
-Linker_require("util/AverageRoller.c")
+Linker_require("util/AverageRoller.c");
 
 struct AverageRoller
 {

@@ -4,15 +4,16 @@ branches:
   only:
     - crashey
     - master
-    - stable-0.4
-    - stable-0.5
-    - stable-0.6
 
 compiler:
   - gcc
 
+# migrate to travis' new container infrastructure
+sudo: false
+
 script:
   - "uname -a"
   - "bash node_build/run_jshint"
-    # travis has seccomp.h header but does not actually support seccomp.
   - "./do"
+  - "SUBNODE=1 ./do"
+  - "./android_do"

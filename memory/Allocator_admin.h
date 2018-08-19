@@ -10,14 +10,14 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #ifndef Allocator_admin_H
 #define Allocator_admin_H
 #include "admin/Admin.h"
 #include "memory/Allocator.h"
 #include "util/Linker.h"
-Linker_require("memory/Allocator_admin.c")
+Linker_require("memory/Allocator_admin.c");
 
 void Allocator_admin_register(struct Allocator* alloc, struct Admin* admin);
 
